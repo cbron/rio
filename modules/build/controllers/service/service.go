@@ -32,6 +32,7 @@ const (
 	DefaultGithubCrendential = "githubtoken"
 )
 
+// Register sets up the stack-service-build controller and webhook watcher
 func Register(ctx context.Context, rContext *types.Context) error {
 	c := stackobject.NewGeneratingController(ctx, rContext, "stack-service-build", rContext.Rio.Rio().V1().Service())
 	c.Apply = c.Apply.WithCacheTypes(
@@ -43,7 +44,6 @@ func Register(ctx context.Context, rContext *types.Context) error {
 
 	p := populator{
 		systemNamespace:    rContext.Namespace,
-		appCache:           rContext.Rio.Rio().V1().App().Cache(),
 		secretsCache:       rContext.Core.Core().V1().Secret().Cache(),
 		clusterDomainCache: rContext.Global.Admin().V1().ClusterDomain().Cache(),
 		serviceCache:       rContext.Rio.Rio().V1().Service().Cache(),
@@ -61,7 +61,6 @@ func Register(ctx context.Context, rContext *types.Context) error {
 type populator struct {
 	systemNamespace    string
 	customRegistry     string
-	appCache           v1.AppCache
 	secretsCache       corev1controller.SecretCache
 	serviceCache       v1.ServiceCache
 	services           v1.ServiceClient
@@ -75,6 +74,7 @@ func (p *populator) isWebhook(obj runtime.Object) bool {
 	return false
 }
 
+// resolve takes a webhook service and returns a list of related service objects
 func (p *populator) resolve(namespace, name string, obj runtime.Object) (result []relatedresource.Key, err error) {
 	if !p.isWebhook(obj) {
 		return nil, nil
@@ -98,6 +98,7 @@ func (p *populator) resolve(namespace, name string, obj runtime.Object) (result 
 	return
 }
 
+// populate takes a service, sets it's BuildLogToken, populates the build, and sets up webhook
 func (p *populator) populate(obj runtime.Object, ns *corev1.Namespace, os *objectset.ObjectSet) error {
 	service := obj.(*riov1.Service)
 
@@ -122,7 +123,8 @@ func (p *populator) populate(obj runtime.Object, ns *corev1.Namespace, os *objec
 		return err
 	}
 
-	webhook, err := p.appCache.Get(p.systemNamespace, "webhook")
+	//webhook, err := p.appCache.Get(p.systemNamespace, "webhook")
+	webhook, err := p.serviceCache.Get(p.systemNamespace, "webhook")
 	if errors.IsNotFound(err) {
 		webhook = nil
 	} else if err != nil {
@@ -137,7 +139,8 @@ func (p populator) populateBuild(service *riov1.Service, systemNamespace string,
 	// we only support setting imageBuild for primary container
 	rev := service.Spec.Build.Revision
 	if rev == "" {
-		rev = service.Status.FirstRevision
+		//rev = service.Status.FirstRevision
+		rev = service.Status.ImageBuilds
 	}
 	if rev == "" {
 		return nil
@@ -305,7 +308,7 @@ func (p populator) populateBuild(service *riov1.Service, systemNamespace string,
 	return nil
 }
 
-func populateWebhookAndSecrets(webhookService *riov1.App, service *riov1.Service, os *objectset.ObjectSet) {
+func populateWebhookAndSecrets(webhookService *riov1.Service, service *riov1.Service, os *objectset.ObjectSet) {
 	if service.Spec.Build.Revision != "" {
 		return
 	}
