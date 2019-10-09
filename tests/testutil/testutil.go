@@ -34,8 +34,9 @@ func PreCheck() {
 
 // RioCmd executes rio CLI commands with your arguments
 // Example: args=["run", "-n", "test", "nginx"] would run: "rio run -n test nginx"
-func RioCmd(args []string) (string, error) {
+func RioCmd(args []string, envs ...string) (string, error) {
 	cmd := exec.Command("rio", args...)
+	cmd.Env = envs
 	stdOutErr, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("%s: %s", err.Error(), stdOutErr)
