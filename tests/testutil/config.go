@@ -8,8 +8,10 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 type TestConfig struct {
@@ -30,8 +32,7 @@ func (tc *TestConfig) Create(t *testing.T, content []string) {
 	if err != nil {
 		tc.T.Fatal(err.Error())
 	}
-	args := []string{"create", tc.Name, tc.Filepath}
-	_, err = RioCmd("config", args)
+	_, err = RioCmd([]string{"config", "create", tc.Name, tc.Filepath})
 	if err != nil {
 		tc.T.Fatalf("config create command failed: %v", err.Error())
 	}
@@ -44,7 +45,7 @@ func (tc *TestConfig) Create(t *testing.T, content []string) {
 // Executes "rio rm" for this config
 func (tc *TestConfig) Remove() {
 	if tc.ConfigMap.Name != "" {
-		_, err := RioCmd("rm", []string{"--type", "config", tc.Name})
+		_, err := RioCmd([]string{"rm", "--type", "config", tc.Name})
 		if err != nil {
 			tc.T.Logf("failed to delete config: %v", err.Error())
 		}
@@ -53,17 +54,24 @@ func (tc *TestConfig) Remove() {
 
 // GetContent returns the configs Data.Content as list of strings, newline separated
 func (tc *TestConfig) GetContent() []string {
-	var data []string
-	if val, ok := tc.ConfigMap.Data["content"]; ok {
-		if val != "" {
-			for _, s := range strings.Split(val, "\n") {
-				if s != "" {
-					data = append(data, s)
-				}
-			}
-		}
+	return getContentData(tc.ConfigMap)
+}
+
+// GetKubeContent returns the kubectl configmap's Data.Content as list of strings, newline separated
+// CLI Command Run: kubectl get cm testname -n testing-ns -o json
+func (tc *TestConfig) GetKubeContent() []string {
+	args := []string{"get", "cm", tc.ConfigMap.Name, "-n", testingNamespace, "-o", "json"}
+	resultString, err := KubectlCmd(args)
+	if err != nil {
+		tc.T.Fatalf("Failed to get ConfigMaps:  %v", err.Error())
 	}
-	return data
+	var results corev1.ConfigMap
+	err = json.Unmarshal([]byte(resultString), &results)
+	if err != nil {
+		tc.T.Fatalf("Failed to unmarshal ConfigMaps result: %s with error: %v", resultString, err.Error())
+	}
+
+	return getContentData(results)
 }
 
 //////////////////
@@ -88,8 +96,7 @@ func (tc *TestConfig) createTempFile(filename string, content []string) error {
 }
 
 func (tc *TestConfig) reload() error {
-	args := append([]string{"--type", "config", "--format", "json", tc.Name})
-	out, err := RioCmd("inspect", args)
+	out, err := RioCmd([]string{"inspect", "--type", "config", "--format", "json", tc.Name})
 	if err != nil {
 		return err
 	}
@@ -101,16 +108,31 @@ func (tc *TestConfig) reload() error {
 }
 
 func (tc *TestConfig) waitForConfig() error {
-	f := func() bool {
+	f := wait.ConditionFunc(func() (bool, error) {
 		err := tc.reload()
 		if err == nil && tc.ConfigMap.UID != "" {
-			return true
+			return true, nil
 		}
-		return false
-	}
-	ok := WaitFor(f, 60)
-	if ok == false {
+		return false, nil
+	})
+	err := wait.Poll(2*time.Second, 60*time.Second, f)
+	if err != nil {
 		return errors.New("config not successfully created")
 	}
 	return nil
+}
+
+// getContentData returns the configs Data.Content as list of strings, newline separated
+func getContentData(cm corev1.ConfigMap) []string {
+	var data []string
+	if val, ok := cm.Data["content"]; ok {
+		if val != "" {
+			for _, s := range strings.Split(val, "\n") {
+				if s != "" {
+					data = append(data, s)
+				}
+			}
+		}
+	}
+	return data
 }

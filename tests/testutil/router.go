@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 )
@@ -25,8 +28,7 @@ func (tr *TestRoute) Add(t *testing.T, routePath string, action string, target T
 	tr.Path = routePath
 	tr.Name = fmt.Sprintf("%s/%s", testingNamespace, fakeDomain)
 	route := fmt.Sprintf("%s.%s%s", fakeDomain, testingNamespace, routePath)
-	args := []string{"add", route, action, target.Name}
-	_, err := RioCmd("route", args)
+	_, err := RioCmd([]string{"route", "add", route, action, target.Name})
 	if err != nil {
 		tr.T.Fatalf("route add command failed:  %v", err.Error())
 	}
@@ -36,10 +38,25 @@ func (tr *TestRoute) Add(t *testing.T, routePath string, action string, target T
 	}
 }
 
+// Takes name of existing router and returns it as a TestRoute
+func GetRoute(t *testing.T, name string, routePath string) TestRoute {
+	tr := TestRoute{
+		Router: riov1.Router{},
+		Name:   fmt.Sprintf("%s/%s", testingNamespace, name),
+		Path:   routePath,
+		T:      t,
+	}
+	err := tr.waitForRoute()
+	if err != nil {
+		tr.T.Fatalf(err.Error())
+	}
+	return tr
+}
+
 // Executes "rio rm" for this route. This will delete all routes under this domain.
 func (tr *TestRoute) Remove() {
 	if tr.Router.Name != "" {
-		_, err := RioCmd("rm", []string{"--type", "router", tr.Name})
+		_, err := RioCmd([]string{"rm", "--type", "router", tr.Name})
 		if err != nil {
 			tr.T.Logf("failed to delete route:  %v", err.Error())
 		}
@@ -64,8 +81,7 @@ func (tr *TestRoute) GetEndpoint() string {
 //////////////////
 
 func (tr *TestRoute) reload() error {
-	args := append([]string{"--type", "router", "--format", "json", tr.Name})
-	out, err := RioCmd("inspect", args)
+	out, err := RioCmd([]string{"inspect", "--type", "router", "--format", "json", tr.Name})
 	if err != nil {
 		return err
 	}
@@ -77,17 +93,17 @@ func (tr *TestRoute) reload() error {
 }
 
 func (tr *TestRoute) waitForRoute() error {
-	f := func() bool {
+	f := wait.ConditionFunc(func() (bool, error) {
 		err := tr.reload()
 		if err == nil {
 			if len(tr.Router.Status.Endpoints) > 0 {
-				return true
+				return true, nil
 			}
 		}
-		return false
-	}
-	ok := WaitFor(f, 60)
-	if ok == false {
+		return false, nil
+	})
+	err := wait.Poll(2*time.Second, 60*time.Second, f)
+	if err != nil {
 		return errors.New("router and router endpoint not successfully initiated")
 	}
 	return nil

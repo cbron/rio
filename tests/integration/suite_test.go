@@ -28,6 +28,7 @@ func TestSuite(t *testing.T) {
 		"export":          exportTests,
 		"externalService": externalServiceTests,
 		"rbac":            rbacTests,
+		"riofile":         riofileTests,
 	}
 	for desc, fnc := range specs {
 		suite(desc, fnc)

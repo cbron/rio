@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 )
@@ -22,8 +25,7 @@ func (es *TestExternalService) Create(t *testing.T, target string) {
 	es.T = t
 	es.Target = target
 	es.Name = fmt.Sprintf("%s/%s", testingNamespace, GenerateName())
-	args := []string{"create", es.Name, target}
-	_, err := RioCmd("externalservice", args)
+	_, err := RioCmd([]string{"externalservice", "create", es.Name, target})
 	if err != nil {
 		es.T.Fatalf("external service create command failed: %v", err.Error())
 	}
@@ -33,10 +35,25 @@ func (es *TestExternalService) Create(t *testing.T, target string) {
 	}
 }
 
+// Takes the name of an existing external service, loads it, and returns
+func GetExternalService(t *testing.T, name string) TestExternalService {
+	es := TestExternalService{
+		Target:          "",
+		Name:            fmt.Sprintf("%s/%s", testingNamespace, name),
+		ExternalService: riov1.ExternalService{},
+		T:               t,
+	}
+	err := es.waitForExternalService()
+	if err != nil {
+		es.T.Fatalf(err.Error())
+	}
+	return es
+}
+
 // Executes "rio rm" for this external service
 func (es *TestExternalService) Remove() {
 	if es.ExternalService.Name != "" {
-		_, err := RioCmd("rm", []string{"--type", "externalservice", es.Name})
+		_, err := RioCmd([]string{"rm", "--type", "externalservice", es.Name})
 		if err != nil {
 			es.T.Logf("failed to delete external service: %v", err.Error())
 		}
@@ -60,8 +77,7 @@ func (es *TestExternalService) GetFQDN() string {
 //////////////////
 
 func (es *TestExternalService) reload() error {
-	args := append([]string{"--type", "externalservice", "--format", "json", es.Name})
-	out, err := RioCmd("inspect", args)
+	out, err := RioCmd([]string{"inspect", "--type", "externalservice", "--format", "json", es.Name})
 	if err != nil {
 		return err
 	}
@@ -73,15 +89,15 @@ func (es *TestExternalService) reload() error {
 }
 
 func (es *TestExternalService) waitForExternalService() error {
-	f := func() bool {
+	f := wait.ConditionFunc(func() (bool, error) {
 		err := es.reload()
 		if err == nil && (len(es.ExternalService.Spec.IPAddresses) > 0 || es.ExternalService.Spec.FQDN != "") {
-			return true
+			return true, nil
 		}
-		return false
-	}
-	ok := WaitFor(f, 60)
-	if ok == false {
+		return false, nil
+	})
+	err := wait.Poll(2*time.Second, 60*time.Second, f)
+	if err != nil {
 		return errors.New("external service not successfully initiated")
 	}
 	return nil

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/namesgenerator"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const testingNamespace = "testing-ns"
@@ -32,9 +33,8 @@ func PreCheck() {
 }
 
 // RioCmd executes rio CLI commands with your arguments
-// Example: name=run and args=["-n", "test", "nginx"] would run: "rio run -n test nginx"
-func RioCmd(name string, args []string, envs ...string) (string, error) {
-	args = append([]string{name}, args...) // named command is always first arg
+// Example: args=["run", "-n", "test", "nginx"] would run: "rio run -n test nginx"
+func RioCmd(args []string, envs ...string) (string, error) {
 	cmd := exec.Command("rio", args...)
 	cmd.Env = envs
 	stdOutErr, err := cmd.CombinedOutput()
@@ -44,33 +44,28 @@ func RioCmd(name string, args []string, envs ...string) (string, error) {
 	return string(stdOutErr), nil
 }
 
-type waitForMe = func() bool
-
-// WaitFor takes a method and waits until it returns true
-func WaitFor(f waitForMe, timeout int) bool {
-	sleepSeconds := 1
-	for start := time.Now(); time.Since(start) < time.Second*time.Duration(timeout); {
-		out := f()
-		if out == true {
-			return out
-		}
-		time.Sleep(time.Second * time.Duration(sleepSeconds))
-		sleepSeconds++
+// KubectlCmd executes kubectl CLI commands with your arguments
+// Example: args=["get", "-n", "test", "services"] would run: "kubectl get -n test services"
+func KubectlCmd(args []string) (string, error) {
+	cmd := exec.Command("kubectl", args...)
+	stdOutErr, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("%s: %s", err.Error(), stdOutErr)
 	}
-	return false
+	return string(stdOutErr), nil
 }
 
 // Wait until a URL has a response that returns 200 status code, else return error
 func WaitForURLResponse(endpoint string) (string, error) {
-	f := func() bool {
+	f := wait.ConditionFunc(func() (bool, error) {
 		_, err := GetURL(endpoint)
 		if err == nil {
-			return true
+			return true, nil
 		}
-		return false
-	}
-	ok := WaitFor(f, 120)
-	if ok == false {
+		return false, nil
+	})
+	err := wait.Poll(2*time.Second, 120*time.Second, f)
+	if err != nil {
 		return "", errors.New("endpoint did not return 200")
 	}
 	resp, _ := GetURL(endpoint)
