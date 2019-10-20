@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	ServiceConditionImageReady = condition.Cond("ImageReady")
+	ServiceConditionImageReady      = condition.Cond("ImageReady")
+	ServiceConditionServiceDeployed = condition.Cond("ServiceDeployed")
 )
 
 // +genclient
