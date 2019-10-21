@@ -13,17 +13,11 @@ import (
 )
 
 func Register(ctx context.Context, rContext *types.Context) error {
-	fmt.Println("Registering rollout controller")
 	rh := rolloutHandler{
 		services:     rContext.Rio.Rio().V1().Service(),
 		serviceCache: rContext.Rio.Rio().V1().Service().Cache(),
 	}
 
-	// todo: do we need to use this updateAppOnChange ? Or more likely UpdateServiceDeepCopyOnChange
-	//type ServiceHandler func(string, *v1.Service) (*v1.Service, error)
-	//updator := riov1controller.UpdateAppOnChange(rContext.Rio.Rio().V1().App().Updater(), sh.sync)
-	//updater := riov1controller.UpdateServiceDeepCopyOnChange()
-	//rContext.Rio.Rio().V1().Service().OnChange(ctx, "rollout", updater)
 	rContext.Rio.Rio().V1().Service().OnChange(ctx, "rollout", rh.sync)
 	return nil
 }
@@ -31,21 +25,20 @@ func Register(ctx context.Context, rContext *types.Context) error {
 type rolloutHandler struct {
 	services     riov1controller.ServiceController
 	serviceCache riov1controller.ServiceCache
+	client       riov1controller.ServiceClient
 }
 
 func (r rolloutHandler) sync(key string, obj *riov1.Service) (*riov1.Service, error) {
+	// todo: remove all print statments
 	fmt.Println("syncing...")
-	if obj == nil {
-		return nil, nil
-	}
+	return riov1controller.UpdateServiceDeepCopyOnChange(r.client, obj, r.rollout)
+}
 
-	svc := obj // todo: fix to svc := obj.DeepCopy() or use that generator thing
+func (r rolloutHandler) rollout(svc *riov1.Service) (*riov1.Service, error) {
 
 	// get all services
 	appName, _ := services.AppAndVersion(svc)
-
 	revisions, err := r.serviceCache.GetByIndex(indexes.ServiceByApp, fmt.Sprintf("%s/%s", svc.Namespace, appName))
-	fmt.Printf("revisions: %v %v \n", revisions, appName)
 	if err != nil || len(revisions) == 0 {
 		return svc, err
 	}
@@ -55,8 +48,8 @@ func (r rolloutHandler) sync(key string, obj *riov1.Service) (*riov1.Service, er
 		return revisions[i].Spec.Version < revisions[j].Spec.Version
 	})
 
-	// set initial ComputedWeights
-	// todo: why do we need this ? I think because given 3 services with no weight or computedWeight, you start a balanced version
+	// When multiple services are initiated with no weight or computedWeight,
+	// set initial ComputedWeights balanced evenly
 	if !computedWeightsExist(revisions) {
 		fmt.Println("setting initial computedWeights")
 		var added int
@@ -78,9 +71,8 @@ func (r rolloutHandler) sync(key string, obj *riov1.Service) (*riov1.Service, er
 	ready := true
 	var rolloutConfig *riov1.RolloutConfig
 	for _, rev := range revisions {
-		// todo: remove all print statments
 		fmt.Printf("%v/%v Cond deployed: %v\n", rev.Namespace, rev.Name, riov1.ServiceConditionServiceDeployed.IsTrue(rev))
-		// if this revision is not ready but has weight allocated break and return, we don't scale until ready
+		// if this revision is not ready but has weight allocated break and return, can't scale until ready
 		if riov1.ServiceConditionServiceDeployed.IsFalse(rev) && rev.Spec.Weight != nil && *rev.Spec.Weight > 0 {
 			ready = false
 			break
@@ -90,16 +82,6 @@ func (r rolloutHandler) sync(key string, obj *riov1.Service) (*riov1.Service, er
 			rolloutConfig = rev.Spec.RolloutConfig
 		}
 	}
-	//// todo: remove this, for testing only
-	//if rolloutConfig == nil {
-	//	rolloutConfig = &riov1.RolloutConfig{
-	//		Increment: 1,
-	//		Interval: metav1.Duration{
-	//			Duration: time.Duration(2) * time.Second,
-	//		},
-	//		Pause: false,
-	//	}
-	//}
 	// if services aren't ready or there are no rolloutConfigs found, return
 	if !ready || !canRollout(rolloutConfig) {
 		fmt.Println("Not Ready, RETURNING", svc.Name, ready, rolloutConfig)
@@ -126,13 +108,13 @@ func (r rolloutHandler) sync(key string, obj *riov1.Service) (*riov1.Service, er
 
 		weightToAdjust := *rev.Spec.Weight - observedWeight
 
-		// calc and re-balance
+		// calc weights and re-balance
 		if incrementalRollout(rolloutConfig) {
+			// if we can adjust less than entire increment, else whole increment
 			if abs(weightToAdjust) < rolloutConfig.Increment {
 				observedWeight += weightToAdjust
 				magicSteal(revisions, -weightToAdjust)
 			} else {
-				// only adjust increment amount
 				rolloutAmount := rolloutConfig.Increment
 				if weightToAdjust < 0 {
 					rolloutAmount = -rolloutAmount
