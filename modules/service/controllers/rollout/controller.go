@@ -16,9 +16,11 @@ func Register(ctx context.Context, rContext *types.Context) error {
 	rh := rolloutHandler{
 		services:     rContext.Rio.Rio().V1().Service(),
 		serviceCache: rContext.Rio.Rio().V1().Service().Cache(),
+		//apply:        rContext.Apply.WithCacheTypes(rContext.Rio.Rio().V1().Service()).WithStrictCaching(),
 	}
 
-	rContext.Rio.Rio().V1().Service().OnChange(ctx, "rollout", rh.sync)
+	//rContext.Rio.Rio().V1().Service().OnChange(ctx, "rollout", rh.sync)
+	rContext.Rio.Rio().V1().Service().OnChange(ctx, "rollout", rh.rollout)
 	return nil
 }
 
@@ -26,15 +28,23 @@ type rolloutHandler struct {
 	services     riov1controller.ServiceController
 	serviceCache riov1controller.ServiceCache
 	client       riov1controller.ServiceClient
+	//apply        apply.Apply
 }
 
-func (r rolloutHandler) sync(key string, obj *riov1.Service) (*riov1.Service, error) {
-	// todo: remove all print statments
-	fmt.Println("syncing...")
-	return riov1controller.UpdateServiceDeepCopyOnChange(r.client, obj, r.rollout)
-}
+//
+//func (r rolloutHandler) sync(key string, obj *riov1.Service) (*riov1.Service, error) {
+//	// todo: remove all print statements, go through comments
+//	// todo: add mutex here ? Would need to limit by this service's app. Wasn't necessary before because it lived on app obj.
+//	if obj == nil {
+//		return nil, nil
+//	}
+//	fmt.Println("\nsyncing... ", obj.Name, obj.Spec.Weight, obj.Status.ComputedWeight)
+//	//r.apply.WithCacheTypes()
+//	//return riov1controller.UpdateServiceDeepCopyOnChange(r.client, obj, r.rollout)
+//}
 
-func (r rolloutHandler) rollout(svc *riov1.Service) (*riov1.Service, error) {
+//func (r rolloutHandler) rollout(svc *riov1.Service) (*riov1.Service, error) {
+func (r rolloutHandler) rollout(key string, svc *riov1.Service) (*riov1.Service, error) {
 
 	// get all services
 	appName, _ := services.AppAndVersion(svc)
@@ -57,11 +67,11 @@ func (r rolloutHandler) rollout(svc *riov1.Service) (*riov1.Service, error) {
 		for i, rev := range revisions {
 			rev.Status.ComputedWeight = new(int)
 			if i != len(revisions)-1 {
-				fmt.Println("setting computed: ", svc.Name, add)
+				fmt.Println("setting computed: ", rev.Name, add)
 				*rev.Status.ComputedWeight = add
 				added += add
 			} else {
-				fmt.Println("setting computed: ", svc.Name, 100-added)
+				fmt.Println("setting computed: ", rev.Name, 100-added)
 				*rev.Status.ComputedWeight = 100 - added
 			}
 		}
@@ -72,7 +82,7 @@ func (r rolloutHandler) rollout(svc *riov1.Service) (*riov1.Service, error) {
 	var rolloutConfig *riov1.RolloutConfig
 	for _, rev := range revisions {
 		fmt.Printf("%v/%v Cond deployed: %v\n", rev.Namespace, rev.Name, riov1.ServiceConditionServiceDeployed.IsTrue(rev))
-		// if this revision is not ready but has weight allocated break and return, can't scale until ready
+		// if any revision is not ready but has weight allocated break and return, can't scale until ready
 		if riov1.ServiceConditionServiceDeployed.IsFalse(rev) && rev.Spec.Weight != nil && *rev.Spec.Weight > 0 {
 			ready = false
 			break
@@ -90,6 +100,7 @@ func (r rolloutHandler) rollout(svc *riov1.Service) (*riov1.Service, error) {
 
 	for _, rev := range revisions {
 		// loop through revisions and find one which has a spec.weight that's not yet met
+		// this loop will only execute on a single revision that needs changing
 		if rev.Spec.Weight == nil || (rev.Status.ComputedWeight != nil && *rev.Spec.Weight == *rev.Status.ComputedWeight) {
 			fmt.Println("NOTHING TO DO, Returning", rev.Name)
 			continue // this rev is already at desired weight, nothing to do
@@ -97,7 +108,7 @@ func (r rolloutHandler) rollout(svc *riov1.Service) (*riov1.Service, error) {
 		if rev.Status.ComputedWeight == nil {
 			rev.Status.ComputedWeight = new(int)
 		}
-		fmt.Println("attempting to fix ", rev.Name, *rev.Status.ComputedWeight, *rev.Spec.Weight)
+		fmt.Println("rescaling ", rev.Name, *rev.Status.ComputedWeight, *rev.Spec.Weight)
 		observedWeight := *rev.Status.ComputedWeight
 
 		// sleep in background and run again
@@ -128,6 +139,21 @@ func (r rolloutHandler) rollout(svc *riov1.Service) (*riov1.Service, error) {
 			*rev.Status.ComputedWeight += weightToAdjust
 			magicSteal(revisions, -weightToAdjust)
 		}
+		//var result []runtime.Object
+		//for _, s := range revisions {
+		//	copy := s
+		//	result = append(result, copy)
+		//}
+		//os := objectset.NewObjectSet()
+		//os.Add(result...)
+		//err := r.apply.Apply(os)
+		//if err != nil {
+		//	return svc, err
+		//}
+		for _, s := range revisions {
+			r.client.UpdateStatus(s)
+		}
+
 		break // only execute one revision at one sync call
 	}
 	return svc, nil
