@@ -28,8 +28,7 @@ func scaleTests(t *testing.T, when spec.G, it spec.S) {
 			assert.Equal(t, 3, service.GetScale())
 			assert.Equal(t, 3, service.GetAvailableReplicas())
 			assert.Equal(t, service.GetKubeAvailableReplicas(), service.GetAvailableReplicas())
-			// todo fix below
-			//assert.True(t, service.PodsResponsesMatchAvailableReplicas("/name.html", service.GetAvailableReplicas()))
+			assert.True(t, service.PodsResponsesMatchAvailableReplicas("/name.html", service.GetAvailableReplicas()))
 		})
 		// This is an important test because zero scale is wide ranging feature
 		it("should scale to zero", func() {
@@ -44,8 +43,7 @@ func scaleTests(t *testing.T, when spec.G, it spec.S) {
 			assert.Equal(t, 11, service.GetAvailableReplicas())
 			assert.Equal(t, 11, service.GetScale())
 			assert.Equal(t, service.GetKubeAvailableReplicas(), service.GetAvailableReplicas())
-			// todo fix below
-			//assert.True(t, service.PodsResponsesMatchAvailableReplicas("/name.html", service.GetAvailableReplicas()))
+			assert.True(t, service.PodsResponsesMatchAvailableReplicas("/name.html", service.GetAvailableReplicas()))
 		})
 	}, spec.Parallel())
 }
