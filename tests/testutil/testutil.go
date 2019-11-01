@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sclevine/spec"
+
 	"github.com/docker/docker/pkg/namesgenerator"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -31,14 +33,24 @@ type stop struct {
 	error
 }
 
+var Sequential *bool
+
 // IntegrationPreCheck ensures CLI flag is passed, this way integration tests won't run during unit or validation tests
 func IntegrationPreCheck() {
 	runTests := flag.Bool("integration-tests", false, "must be provided to run the integration tests")
+	Sequential = flag.Bool("sequential", false, "")
 	flag.Parse()
 	if !*runTests {
 		fmt.Fprintln(os.Stderr, "integration test must be enabled with --integration-tests")
 		os.Exit(0)
 	}
+}
+
+func SequenceType() spec.Option {
+	if *Sequential == true {
+		return spec.Sequential()
+	}
+	return spec.Parallel()
 }
 
 // ValidationPreCheck ensures CLI flag is passed, this way validation tests won't run during unit or integration tests

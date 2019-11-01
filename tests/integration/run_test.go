@@ -39,7 +39,7 @@ func runTests(t *testing.T, when spec.G, it spec.S) {
 			//runningPods = service.GetRunningPods()
 			//assert.Greater(t, len(runningPods), 1)
 		})
-	}, spec.Parallel())
+	}, testutil.SequenceType())
 
 	when("run a service with a fixed scale", func() {
 
@@ -67,5 +67,5 @@ func runTests(t *testing.T, when spec.G, it spec.S) {
 				assert.Contains(t, pod, service.Service.Name)
 			}
 		})
-	}, spec.Parallel())
+	}, testutil.SequenceType())
 }
