@@ -79,7 +79,7 @@ require (
 	github.com/rancher/gitwatcher v0.4.4
 	github.com/rancher/norman v0.0.0-20191114233102-966e8db9e670
 	github.com/rancher/rdns-server v0.5.7-0.20190927164127-7128efe7d065
-	github.com/rancher/wrangler v0.2.1-0.20191109002915-2a833f7e410d
+	github.com/rancher/wrangler v0.4.1-0.20200111044800-215c44d6d835
 	github.com/rancher/wrangler-api v0.2.1-0.20191025043713-b1ca9c21825a
 	github.com/sclevine/spec v1.4.0
 	github.com/sirupsen/logrus v1.4.2
@@ -95,9 +95,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v2 v2.2.4
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.0.0
-	k8s.io/apiextensions-apiserver v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.17.0
+	k8s.io/apiextensions-apiserver v0.17.0
+	k8s.io/apimachinery v0.17.0
 	k8s.io/apiserver v0.0.0
 	k8s.io/cli-runtime v0.0.0
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
