@@ -26,6 +26,7 @@ import (
 )
 
 type Interface interface {
+	DeploymentWrangler() DeploymentWranglerController
 	ExternalService() ExternalServiceController
 	Router() RouterController
 	Service() ServiceController
@@ -47,6 +48,9 @@ type version struct {
 	client            clientset.RioV1Interface
 }
 
+func (c *version) DeploymentWrangler() DeploymentWranglerController {
+	return NewDeploymentWranglerController(v1.SchemeGroupVersion.WithKind("DeploymentWrangler"), c.controllerManager, c.client, c.informers.DeploymentWranglers())
+}
 func (c *version) ExternalService() ExternalServiceController {
 	return NewExternalServiceController(v1.SchemeGroupVersion.WithKind("ExternalService"), c.controllerManager, c.client, c.informers.ExternalServices())
 }

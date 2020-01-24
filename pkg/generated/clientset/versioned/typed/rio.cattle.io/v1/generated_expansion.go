@@ -18,6 +18,8 @@ limitations under the License.
 
 package v1
 
+type DeploymentWranglerExpansion interface{}
+
 type ExternalServiceExpansion interface{}
 
 type RouterExpansion interface{}

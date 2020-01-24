@@ -23,6 +23,8 @@ const (
 
 	GitCommitLabel = "gitwatcher.rio.cattle.io/git-commit"
 	LogTokenLabel  = "gitwatcher.rio.cattle.io/log-token"
+
+	DeploymentWranglerLabel = "rio.cattle.io/deploymentwrangler"
 )
 
 var (

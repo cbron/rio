@@ -4,11 +4,15 @@ import (
 	"github.com/rancher/rio/modules/service/controllers/service/populate/pod"
 	"github.com/rancher/rio/modules/service/controllers/service/populate/servicelabels"
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
+	"github.com/rancher/rio/pkg/constants"
 	"github.com/rancher/wrangler/pkg/objectset"
 	v1 "k8s.io/api/core/v1"
 )
 
 func Populate(service *riov1.Service, os *objectset.ObjectSet) error {
+	if isDeploymentWrangler(service.Annotations) {
+		return nil
+	}
 	podTemplateSpec, err := pod.Populate(service, os)
 	if err != nil {
 		return err
@@ -81,4 +85,13 @@ type controllerParams struct {
 	SelectorLabels  map[string]string
 	VolumeTemplates map[string]riov1.VolumeTemplate
 	PodTemplateSpec v1.PodTemplateSpec
+}
+
+func isDeploymentWrangler(annotations map[string]string) bool {
+	if anno, ok := annotations[constants.DeploymentWranglerLabel]; ok {
+		if anno == "true" {
+			return true
+		}
+	}
+	return false
 }

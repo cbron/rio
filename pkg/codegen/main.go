@@ -34,6 +34,7 @@ func main() {
 					riov1.Router{},
 					riov1.Service{},
 					riov1.Stack{},
+					riov1.DeploymentWrangler{},
 				},
 				GenerateTypes: true,
 			},

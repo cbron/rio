@@ -19,6 +19,7 @@ func getCRDs() []crd.CRD {
 		newCRD("Router.rio.cattle.io/v1", v1.Router{}),
 		newCRD("Service.rio.cattle.io/v1", v1.Service{}),
 		newCRD("Stack.rio.cattle.io/v1", v1.Stack{}),
+		newCRD("DeploymentWrangler.rio.cattle.io/v1", v1.DeploymentWrangler{}).WithShortNames("dw"),
 	})
 
 	crds = append(crds,

@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// DeploymentWranglers returns a DeploymentWranglerInformer.
+	DeploymentWranglers() DeploymentWranglerInformer
 	// ExternalServices returns a ExternalServiceInformer.
 	ExternalServices() ExternalServiceInformer
 	// Routers returns a RouterInformer.
@@ -43,6 +45,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// DeploymentWranglers returns a DeploymentWranglerInformer.
+func (v *version) DeploymentWranglers() DeploymentWranglerInformer {
+	return &deploymentWranglerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ExternalServices returns a ExternalServiceInformer.

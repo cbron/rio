@@ -28,6 +28,10 @@ type FakeRioV1 struct {
 	*testing.Fake
 }
 
+func (c *FakeRioV1) DeploymentWranglers(namespace string) v1.DeploymentWranglerInterface {
+	return &FakeDeploymentWranglers{c, namespace}
+}
+
 func (c *FakeRioV1) ExternalServices(namespace string) v1.ExternalServiceInterface {
 	return &FakeExternalServices{c, namespace}
 }

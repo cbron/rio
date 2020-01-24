@@ -26,6 +26,7 @@ import (
 
 type RioV1Interface interface {
 	RESTClient() rest.Interface
+	DeploymentWranglersGetter
 	ExternalServicesGetter
 	RoutersGetter
 	ServicesGetter
@@ -35,6 +36,10 @@ type RioV1Interface interface {
 // RioV1Client is used to interact with features provided by the rio.cattle.io group.
 type RioV1Client struct {
 	restClient rest.Interface
+}
+
+func (c *RioV1Client) DeploymentWranglers(namespace string) DeploymentWranglerInterface {
+	return newDeploymentWranglers(c, namespace)
 }
 
 func (c *RioV1Client) ExternalServices(namespace string) ExternalServiceInterface {

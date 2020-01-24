@@ -91,3 +91,20 @@ func NewStack(namespace, name string, obj Stack) *Stack {
 	obj.Namespace = namespace
 	return &obj
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// DeploymentWranglerList is a list of DeploymentWrangler resources
+type DeploymentWranglerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []DeploymentWrangler `json:"items"`
+}
+
+func NewDeploymentWrangler(namespace, name string, obj DeploymentWrangler) *DeploymentWrangler {
+	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("DeploymentWrangler").ToAPIVersionAndKind()
+	obj.Name = name
+	obj.Namespace = namespace
+	return &obj
+}

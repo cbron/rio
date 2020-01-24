@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1
 
+// DeploymentWranglerListerExpansion allows custom methods to be added to
+// DeploymentWranglerLister.
+type DeploymentWranglerListerExpansion interface{}
+
+// DeploymentWranglerNamespaceListerExpansion allows custom methods to be added to
+// DeploymentWranglerNamespaceLister.
+type DeploymentWranglerNamespaceListerExpansion interface{}
+
 // ExternalServiceListerExpansion allows custom methods to be added to
 // ExternalServiceLister.
 type ExternalServiceListerExpansion interface{}

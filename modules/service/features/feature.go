@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/rio/modules/service/controllers/app"
+	"github.com/rancher/rio/modules/service/controllers/deploymentwrangler"
 	"github.com/rancher/rio/modules/service/controllers/externalservice"
 	"github.com/rancher/rio/modules/service/controllers/globalrbac"
 	"github.com/rancher/rio/modules/service/controllers/rollout"
@@ -27,6 +28,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 			externalservice.Register,
 			router.Register,
 			service.Register,
+			deploymentwrangler.Register,
 			globalrbac.Register,
 			servicestatus.Register,
 			rollout.Register,
