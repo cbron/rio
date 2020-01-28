@@ -30,10 +30,10 @@ type Interface interface {
 	ExternalServices() ExternalServiceInformer
 	// Routers returns a RouterInformer.
 	Routers() RouterInformer
-	// Services returns a ServiceInformer.
-	Services() ServiceInformer
 	// Stacks returns a StackInformer.
 	Stacks() StackInformer
+	// StatefulSetWranglers returns a StatefulSetWranglerInformer.
+	StatefulSetWranglers() StatefulSetWranglerInformer
 }
 
 type version struct {
@@ -62,12 +62,12 @@ func (v *version) Routers() RouterInformer {
 	return &routerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Services returns a ServiceInformer.
-func (v *version) Services() ServiceInformer {
-	return &serviceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // Stacks returns a StackInformer.
 func (v *version) Stacks() StackInformer {
 	return &stackInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// StatefulSetWranglers returns a StatefulSetWranglerInformer.
+func (v *version) StatefulSetWranglers() StatefulSetWranglerInformer {
+	return &statefulSetWranglerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

@@ -34,11 +34,23 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		lastWrite:     make(map[string]metav1.Time),
 		lastWriteLock: sync.RWMutex{},
 	}
-	rContext.Rio.Rio().V1().Service().OnChange(ctx, "rollout", rh.rollout)
+	rContext.Rio.Rio().V1().StatefulSetWrangler().OnChange(ctx, "rollout", rh.rolloutSSW)
+	rContext.Rio.Rio().V1().DeploymentWrangler().OnChange(ctx, "rollout", rh.rolloutDW)
 	return nil
 }
 
-func (rh *rolloutHandler) rollout(key string, svc *riov1.Service) (*riov1.Service, error) {
+func (rh *rolloutHandler) rolloutDW(key string, dw *riov1.DeploymentWrangler) (*riov1.DeploymentWrangler, error) {
+	_, err := rh.rollout(key, dw)
+	return dw, err
+}
+
+func (rh *rolloutHandler) rolloutSSW(key string, ssw *riov1.StatefulSetWrangler) (*riov1.StatefulSetWrangler, error) {
+	_, err := rh.rollout(key, ssw)
+	return ssw, err
+}
+
+func (rh *rolloutHandler) rollout(key string, bazz riov1.Shared) (*riov1.Service, error) {
+
 	if svc == nil || svc.DeletionTimestamp != nil {
 		return nil, nil
 	}

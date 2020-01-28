@@ -31,59 +31,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// ServiceInformer provides access to a shared informer and lister for
-// Services.
-type ServiceInformer interface {
+// StatefulSetWranglerInformer provides access to a shared informer and lister for
+// StatefulSetWranglers.
+type StatefulSetWranglerInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.ServiceLister
+	Lister() v1.StatefulSetWranglerLister
 }
 
-type serviceInformer struct {
+type statefulSetWranglerInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewServiceInformer constructs a new informer for Service type.
+// NewStatefulSetWranglerInformer constructs a new informer for StatefulSetWrangler type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewServiceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredServiceInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewStatefulSetWranglerInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredStatefulSetWranglerInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredServiceInformer constructs a new informer for Service type.
+// NewFilteredStatefulSetWranglerInformer constructs a new informer for StatefulSetWrangler type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredServiceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredStatefulSetWranglerInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.RioV1().Services(namespace).List(options)
+				return client.RioV1().StatefulSetWranglers(namespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.RioV1().Services(namespace).Watch(options)
+				return client.RioV1().StatefulSetWranglers(namespace).Watch(options)
 			},
 		},
-		&riocattleiov1.Service{},
+		&riocattleiov1.StatefulSetWrangler{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *serviceInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredServiceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *statefulSetWranglerInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredStatefulSetWranglerInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *serviceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&riocattleiov1.Service{}, f.defaultInformer)
+func (f *statefulSetWranglerInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&riocattleiov1.StatefulSetWrangler{}, f.defaultInformer)
 }
 
-func (f *serviceInformer) Lister() v1.ServiceLister {
-	return v1.NewServiceLister(f.Informer().GetIndexer())
+func (f *statefulSetWranglerInformer) Lister() v1.StatefulSetWranglerLister {
+	return v1.NewStatefulSetWranglerLister(f.Informer().GetIndexer())
 }

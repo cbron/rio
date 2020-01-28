@@ -42,14 +42,6 @@ type RouterListerExpansion interface{}
 // RouterNamespaceLister.
 type RouterNamespaceListerExpansion interface{}
 
-// ServiceListerExpansion allows custom methods to be added to
-// ServiceLister.
-type ServiceListerExpansion interface{}
-
-// ServiceNamespaceListerExpansion allows custom methods to be added to
-// ServiceNamespaceLister.
-type ServiceNamespaceListerExpansion interface{}
-
 // StackListerExpansion allows custom methods to be added to
 // StackLister.
 type StackListerExpansion interface{}
@@ -57,3 +49,11 @@ type StackListerExpansion interface{}
 // StackNamespaceListerExpansion allows custom methods to be added to
 // StackNamespaceLister.
 type StackNamespaceListerExpansion interface{}
+
+// StatefulSetWranglerListerExpansion allows custom methods to be added to
+// StatefulSetWranglerLister.
+type StatefulSetWranglerListerExpansion interface{}
+
+// StatefulSetWranglerNamespaceListerExpansion allows custom methods to be added to
+// StatefulSetWranglerNamespaceLister.
+type StatefulSetWranglerNamespaceListerExpansion interface{}

@@ -28,11 +28,11 @@ import (
 )
 
 var (
-	DeploymentWranglerResourceName = "deploymentwranglers"
-	ExternalServiceResourceName    = "externalservices"
-	RouterResourceName             = "routers"
-	ServiceResourceName            = "services"
-	StackResourceName              = "stacks"
+	DeploymentWranglerResourceName  = "deploymentwranglers"
+	ExternalServiceResourceName     = "externalservices"
+	RouterResourceName              = "routers"
+	StackResourceName               = "stacks"
+	StatefulSetWranglerResourceName = "statefulsetwranglers"
 )
 
 // SchemeGroupVersion is group version used to register these objects
@@ -62,10 +62,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ExternalServiceList{},
 		&Router{},
 		&RouterList{},
-		&Service{},
-		&ServiceList{},
 		&Stack{},
 		&StackList{},
+		&StatefulSetWrangler{},
+		&StatefulSetWranglerList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

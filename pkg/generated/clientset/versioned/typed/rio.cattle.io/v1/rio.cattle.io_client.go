@@ -29,8 +29,8 @@ type RioV1Interface interface {
 	DeploymentWranglersGetter
 	ExternalServicesGetter
 	RoutersGetter
-	ServicesGetter
 	StacksGetter
+	StatefulSetWranglersGetter
 }
 
 // RioV1Client is used to interact with features provided by the rio.cattle.io group.
@@ -50,12 +50,12 @@ func (c *RioV1Client) Routers(namespace string) RouterInterface {
 	return newRouters(c, namespace)
 }
 
-func (c *RioV1Client) Services(namespace string) ServiceInterface {
-	return newServices(c, namespace)
-}
-
 func (c *RioV1Client) Stacks(namespace string) StackInterface {
 	return newStacks(c, namespace)
+}
+
+func (c *RioV1Client) StatefulSetWranglers(namespace string) StatefulSetWranglerInterface {
+	return newStatefulSetWranglers(c, namespace)
 }
 
 // NewForConfig creates a new RioV1Client for the given config.

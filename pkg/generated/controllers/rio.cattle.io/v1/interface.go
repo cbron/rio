@@ -29,8 +29,8 @@ type Interface interface {
 	DeploymentWrangler() DeploymentWranglerController
 	ExternalService() ExternalServiceController
 	Router() RouterController
-	Service() ServiceController
 	Stack() StackController
+	StatefulSetWrangler() StatefulSetWranglerController
 }
 
 func New(controllerManager *generic.ControllerManager, client clientset.RioV1Interface,
@@ -57,9 +57,9 @@ func (c *version) ExternalService() ExternalServiceController {
 func (c *version) Router() RouterController {
 	return NewRouterController(v1.SchemeGroupVersion.WithKind("Router"), c.controllerManager, c.client, c.informers.Routers())
 }
-func (c *version) Service() ServiceController {
-	return NewServiceController(v1.SchemeGroupVersion.WithKind("Service"), c.controllerManager, c.client, c.informers.Services())
-}
 func (c *version) Stack() StackController {
 	return NewStackController(v1.SchemeGroupVersion.WithKind("Stack"), c.controllerManager, c.client, c.informers.Stacks())
+}
+func (c *version) StatefulSetWrangler() StatefulSetWranglerController {
+	return NewStatefulSetWranglerController(v1.SchemeGroupVersion.WithKind("StatefulSetWrangler"), c.controllerManager, c.client, c.informers.StatefulSetWranglers())
 }

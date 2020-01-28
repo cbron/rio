@@ -60,23 +60,6 @@ func NewRouter(namespace, name string, obj Router) *Router {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ServiceList is a list of Service resources
-type ServiceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-
-	Items []Service `json:"items"`
-}
-
-func NewService(namespace, name string, obj Service) *Service {
-	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("Service").ToAPIVersionAndKind()
-	obj.Name = name
-	obj.Namespace = namespace
-	return &obj
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // StackList is a list of Stack resources
 type StackList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -104,6 +87,23 @@ type DeploymentWranglerList struct {
 
 func NewDeploymentWrangler(namespace, name string, obj DeploymentWrangler) *DeploymentWrangler {
 	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("DeploymentWrangler").ToAPIVersionAndKind()
+	obj.Name = name
+	obj.Namespace = namespace
+	return &obj
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// StatefulSetWranglerList is a list of StatefulSetWrangler resources
+type StatefulSetWranglerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []StatefulSetWrangler `json:"items"`
+}
+
+func NewStatefulSetWrangler(namespace, name string, obj StatefulSetWrangler) *StatefulSetWrangler {
+	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("StatefulSetWrangler").ToAPIVersionAndKind()
 	obj.Name = name
 	obj.Namespace = namespace
 	return &obj

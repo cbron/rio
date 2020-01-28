@@ -40,12 +40,12 @@ func (c *FakeRioV1) Routers(namespace string) v1.RouterInterface {
 	return &FakeRouters{c, namespace}
 }
 
-func (c *FakeRioV1) Services(namespace string) v1.ServiceInterface {
-	return &FakeServices{c, namespace}
-}
-
 func (c *FakeRioV1) Stacks(namespace string) v1.StackInterface {
 	return &FakeStacks{c, namespace}
+}
+
+func (c *FakeRioV1) StatefulSetWranglers(namespace string) v1.StatefulSetWranglerInterface {
+	return &FakeStatefulSetWranglers{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
