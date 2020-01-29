@@ -1,7 +1,7 @@
 package k8sservice
 
 import (
-	"github.com/rancher/rio/modules/service/controllers/service/populate/servicelabels"
+	"github.com/rancher/rio/modules/service/pkg/populate/servicelabels"
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 	"github.com/rancher/rio/pkg/constructors"
 	"github.com/rancher/rio/pkg/serviceports"
@@ -12,13 +12,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func serviceSelector(service *riov1.Service, os *objectset.ObjectSet) {
-	labels := servicelabels.ServiceLabels(service)
-	selectorLabels := servicelabels.SelectorLabels(service)
-	app, version := services.AppAndVersion(service)
-	svc := newServiceSelector(app+"-"+version, service.Namespace, v1.ServiceTypeClusterIP, labels, selectorLabels)
-	if len(serviceports.ServiceNamedPorts(service)) > 0 {
-		svc.Spec.Ports = serviceports.ServiceNamedPorts(service)
+func serviceSelector(w riov1.Wrangler, os *objectset.ObjectSet) {
+	labels := servicelabels.ServiceLabels(w)
+	selectorLabels := servicelabels.SelectorLabels(w)
+	app, version := services.AppAndVersion(w) // todo: rename this services package, it references rio service
+	svc := newServiceSelector(app+"-"+version, w.GetMeta().Namespace, v1.ServiceTypeClusterIP, labels, selectorLabels)
+	if ports := serviceports.ServiceNamedPorts(w); len(ports) > 0 {
+		svc.Spec.Ports = ports
 	}
 	os.Add(svc)
 }

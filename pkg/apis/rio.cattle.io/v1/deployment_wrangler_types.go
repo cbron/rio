@@ -22,3 +22,15 @@ type DeploymentWranglerSpec struct {
 type DeploymentWranglerStatus struct {
 	WranglerStatus
 }
+
+func (dw DeploymentWrangler) GetMeta() metav1.ObjectMeta {
+	return dw.ObjectMeta
+}
+
+func (dw DeploymentWrangler) GetSpec() WranglerSpec {
+	return dw.Spec.WranglerSpec
+}
+
+func (dw DeploymentWrangler) GetStatus() WranglerStatus {
+	return dw.Status.WranglerStatus
+}

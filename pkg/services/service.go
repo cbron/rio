@@ -1,47 +1,47 @@
 package services
 
 import (
-	v1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
+	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 )
 
-func AppAndVersion(service *v1.Service) (string, string) {
-	app := service.Spec.App
-	version := service.Spec.Version
+func AppAndVersion(w riov1.Wrangler) (string, string) {
+	app := w.GetSpec().App
+	version := w.GetSpec().Version
 
 	if app == "" {
-		app = service.Name
+		app = w.GetMeta().Name
 	}
 	if version == "" {
-		if len(service.UID) < 8 {
-			version = string(service.UID)
+		if len(w.GetMeta().UID) < 8 {
+			version = string(w.GetMeta().UID)
 		} else {
-			version = string(service.UID)[:8]
+			version = string(w.GetMeta().UID)[:8]
 		}
 	}
-
 	return app, version
 }
 
-func RootContainerName(service *v1.Service) string {
-	return service.Name
-}
+//func RootContainerName(w riov1.Wrangler) string {
+//	return w.GetMeta().Name
+//}
+//
+//func containerIsValid(container riov1.Container) bool {
+//	return container.Image != "" || container.ImageBuild != nil
+//}
+//
+//// Convert non-named container to named container using name
+//func ToNamedContainers(w riov1.Wrangler) (result []riov1.NamedContainer) {
+//	if containerIsValid(w.GetSpec().Container) {
+//		result = append(result, riov1.NamedContainer{
+//			Name:      RootContainerName(w),
+//			Container: w.GetSpec().Container,
+//		})
+//	}
+//
+//	result = append(result, w.GetSpec().Sidecars...)
+//	return
+//}
 
-func containerIsValid(container *v1.Container) bool {
-	return container.Image != "" || container.ImageBuild != nil
-}
-
-func ToNamedContainers(service *v1.Service) (result []v1.NamedContainer) {
-	if containerIsValid(&service.Spec.Container) {
-		result = append(result, v1.NamedContainer{
-			Name:      RootContainerName(service),
-			Container: service.Spec.Container,
-		})
-	}
-
-	result = append(result, service.Spec.Sidecars...)
-	return
-}
-
-func AutoscaleEnable(service *v1.Service) bool {
-	return service.Spec.Autoscale != nil && service.Spec.Autoscale.MinReplicas != nil && service.Spec.Autoscale.MaxReplicas != nil && *service.Spec.Autoscale.MinReplicas != *service.Spec.Autoscale.MaxReplicas
+func AutoscaleEnable(w riov1.Wrangler) bool {
+	return w.GetSpec().Autoscale != nil && w.GetSpec().Autoscale.MinReplicas != nil && w.GetSpec().Autoscale.MaxReplicas != nil && *w.GetSpec().Autoscale.MinReplicas != *w.GetSpec().Autoscale.MaxReplicas
 }

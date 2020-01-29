@@ -9,7 +9,6 @@ import (
 	"github.com/rancher/rio/pkg/constructors"
 	"github.com/rancher/rio/pkg/controllers"
 	"github.com/rancher/rio/pkg/stack"
-	"github.com/rancher/rio/pkg/webhook"
 	"github.com/rancher/rio/types"
 	"github.com/rancher/wrangler/pkg/crd"
 	"github.com/rancher/wrangler/pkg/kubeconfig"
@@ -42,10 +41,10 @@ func Startup(ctx context.Context, systemNamespace, kubeConfig string) error {
 	}
 
 	// setting up auth webhook
-	w := webhook.New(rioContext, kubeConfig)
-	if err := w.Setup(); err != nil {
-		return err
-	}
+	//w := webhook.New(rioContext, kubeConfig)
+	//if err := w.Setup(); err != nil {
+	//	return err
+	//}
 
 	leader.RunOrDie(ctx, systemNamespace, "rio", rioContext.K8s, func(ctx context.Context) {
 		runtime.Must(controllers.Register(ctx, rioContext))

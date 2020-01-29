@@ -20,7 +20,7 @@ func init() {
 
 	Schema.
 		Init(mappers).
-		Init(service).
+		//Init(service).
 		Init(config).
 		Init(router).
 		Init(externalservice).
@@ -40,34 +40,34 @@ func mappers(schemas *types.Schemas) *types.Schemas {
 }
 
 func objectToSlice(schemas *types.Schemas) *types.Schemas {
-	schemas.AddFieldMapper("configs", m.NewObjectsToSliceFactory(
-		func() m.MaybeStringer {
-			return &stringers.ConfigsStringer{}
-		},
-		func(str string) (interface{}, error) {
-			return stringers.ParseConfig(str)
-		}))
-	schemas.AddFieldMapper("secrets", m.NewObjectsToSliceFactory(
-		func() m.MaybeStringer {
-			return &stringers.SecretsStringer{}
-		},
-		func(str string) (interface{}, error) {
-			return stringers.ParseSecret(str)
-		}))
-	schemas.AddFieldMapper("dnsOptions", m.NewObjectsToSliceFactory(
-		func() m.MaybeStringer {
-			return &stringers.PodDNSConfigOptionStringer{}
-		},
-		func(str string) (interface{}, error) {
-			return stringers.ParseDNSOptions(str)
-		}))
-	schemas.AddFieldMapper("env", m.NewObjectsToSliceFactory(
-		func() m.MaybeStringer {
-			return &stringers.EnvStringer{}
-		},
-		func(str string) (interface{}, error) {
-			return stringers.ParseEnv(str)
-		}))
+	//schemas.AddFieldMapper("configs", m.NewObjectsToSliceFactory(
+	//	func() m.MaybeStringer {
+	//		return &stringers.ConfigsStringer{}
+	//	},
+	//	func(str string) (interface{}, error) {
+	//		return stringers.ParseConfig(str)
+	//	}))
+	//schemas.AddFieldMapper("secrets", m.NewObjectsToSliceFactory(
+	//	func() m.MaybeStringer {
+	//		return &stringers.SecretsStringer{}
+	//	},
+	//	func(str string) (interface{}, error) {
+	//		return stringers.ParseSecret(str)
+	//	}))
+	//schemas.AddFieldMapper("dnsOptions", m.NewObjectsToSliceFactory(
+	//	func() m.MaybeStringer {
+	//		return &stringers.PodDNSConfigOptionStringer{}
+	//	},
+	//	func(str string) (interface{}, error) {
+	//		return stringers.ParseDNSOptions(str)
+	//	}))
+	//schemas.AddFieldMapper("env", m.NewObjectsToSliceFactory(
+	//	func() m.MaybeStringer {
+	//		return &stringers.EnvStringer{}
+	//	},
+	//	func(str string) (interface{}, error) {
+	//		return stringers.ParseEnv(str)
+	//	}))
 	schemas.AddFieldMapper("ports", m.NewObjectsToSliceFactory(
 		func() m.MaybeStringer {
 			return &stringers.ContainerPortStringer{}
@@ -82,13 +82,13 @@ func objectToSlice(schemas *types.Schemas) *types.Schemas {
 		func(str string) (interface{}, error) {
 			return stringers.ParseHostAlias(str)
 		}))
-	schemas.AddFieldMapper("volumes", m.NewObjectsToSliceFactory(
-		func() m.MaybeStringer {
-			return &stringers.VolumeStringer{}
-		},
-		func(str string) (interface{}, error) {
-			return stringers.ParseVolume(str)
-		}))
+	//schemas.AddFieldMapper("volumes", m.NewObjectsToSliceFactory(
+	//	func() m.MaybeStringer {
+	//		return &stringers.VolumeStringer{}
+	//	},
+	//	func(str string) (interface{}, error) {
+	//		return stringers.ParseVolume(str)
+	//	}))
 	schemas.AddFieldMapper("permissions", m.NewObjectsToSliceFactory(
 		func() m.MaybeStringer {
 			return &stringers.PermissionStringer{}
@@ -119,9 +119,10 @@ func externalservice(schemas *types.Schemas) *types.Schemas {
 	return schemas
 }
 
-func service(schemas *types.Schemas) *types.Schemas {
-	schemas.AddMapperForType(v1.Service{},
-		m.NewObject("Service", "rio.cattle.io/v1"))
-
-	return schemas
-}
+//
+//func service(schemas *types.Schemas) *types.Schemas {
+//	schemas.AddMapperForType(v1.Service{},
+//		m.NewObject("Service", "rio.cattle.io/v1"))
+//
+//	return schemas
+//}

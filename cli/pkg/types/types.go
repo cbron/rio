@@ -6,7 +6,6 @@ import (
 
 	projectv1 "github.com/rancher/rio/pkg/apis/admin.rio.cattle.io/v1"
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
-	"github.com/rancher/rio/pkg/services"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -93,10 +92,11 @@ func (r Resource) StringDefaultNamespace(defaultNamespace string) string {
 
 func FromObject(obj runtime.Object) (Resource, error) {
 	result := Resource{}
-	switch o := obj.(type) {
-	case *riov1.Service:
-		result.App, result.Version = services.AppAndVersion(o)
-		result.Type = ServiceType
+	//switch o := obj.(type) {
+	//case *riov1.Service:
+	//	result.App, result.Version = services.AppAndVersion(o)
+	//	result.Type = ServiceType
+	switch obj.(type) {
 	case *corev1.Secret:
 		result.Type = SecretType
 	case *corev1.Pod:

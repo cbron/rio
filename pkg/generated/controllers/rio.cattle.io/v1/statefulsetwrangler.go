@@ -239,9 +239,9 @@ func (c *statefulSetWranglerCache) GetByIndex(indexName, key string) (result []*
 	return result, nil
 }
 
-type StatefulSetWranglerStatusHandler func(obj *v1.StatefulSetWrangler, status v1.DeploymentWranglerStatus) (v1.DeploymentWranglerStatus, error)
+type StatefulSetWranglerStatusHandler func(obj *v1.StatefulSetWrangler, status v1.StatefulSetWranglerStatus) (v1.StatefulSetWranglerStatus, error)
 
-type StatefulSetWranglerGeneratingHandler func(obj *v1.StatefulSetWrangler, status v1.DeploymentWranglerStatus) ([]runtime.Object, v1.DeploymentWranglerStatus, error)
+type StatefulSetWranglerGeneratingHandler func(obj *v1.StatefulSetWrangler, status v1.StatefulSetWranglerStatus) ([]runtime.Object, v1.StatefulSetWranglerStatus, error)
 
 func RegisterStatefulSetWranglerStatusHandler(ctx context.Context, controller StatefulSetWranglerController, condition condition.Cond, name string, handler StatefulSetWranglerStatusHandler) {
 	statusHandler := &statefulSetWranglerStatusHandler{
@@ -311,7 +311,7 @@ type statefulSetWranglerGeneratingHandler struct {
 	name  string
 }
 
-func (a *statefulSetWranglerGeneratingHandler) Handle(obj *v1.StatefulSetWrangler, status v1.DeploymentWranglerStatus) (v1.DeploymentWranglerStatus, error) {
+func (a *statefulSetWranglerGeneratingHandler) Handle(obj *v1.StatefulSetWrangler, status v1.StatefulSetWranglerStatus) (v1.StatefulSetWranglerStatus, error) {
 	objs, newStatus, err := a.StatefulSetWranglerGeneratingHandler(obj, status)
 	if err != nil {
 		return newStatus, err

@@ -19,7 +19,7 @@ import (
 )
 
 type Riofile struct {
-	Services         map[string]riov1.Service
+	//Services         map[string]riov1.Service
 	Configs          map[string]v1.ConfigMap
 	Routers          map[string]riov1.Router
 	ExternalServices map[string]riov1.ExternalService
@@ -34,10 +34,10 @@ func (r *Riofile) Objects() (result []runtime.Object) {
 		copy := s
 		result = append(result, &copy)
 	}
-	for _, s := range r.Services {
-		copy := s
-		result = append(result, &copy)
-	}
+	//for _, s := range r.Services {
+	//	copy := s
+	//	result = append(result, &copy)
+	//}
 	for _, s := range r.ExternalServices {
 		copy := s
 		result = append(result, &copy)
@@ -67,7 +67,7 @@ func RenderObject(object runtime.Object) ([]byte, error) {
 
 func Render(objects []runtime.Object) ([]byte, error) {
 	rf := schema.ExternalRiofile{
-		Services:         map[string]riov1.Service{},
+		//Services:         map[string]riov1.Service{},
 		Configs:          map[string]v1.ConfigMap{},
 		Routers:          map[string]riov1.Router{},
 		ExternalServices: map[string]riov1.ExternalService{},
@@ -77,9 +77,9 @@ func Render(objects []runtime.Object) ([]byte, error) {
 
 	for _, obj := range objects {
 		switch obj.(type) {
-		case *riov1.Service:
-			svc := obj.(*riov1.Service)
-			rf.Services[svc.Name] = *svc
+		//case *riov1.Service:
+		//	svc := obj.(*riov1.Service)
+		//	rf.Services[svc.Name] = *svc
 		case *v1.ConfigMap:
 			cm := obj.(*v1.ConfigMap)
 			rf.Configs[cm.Name] = *cm
@@ -246,31 +246,31 @@ func merge(labels1, labels2 map[string]interface{}) map[string]interface{} {
 
 func toRiofile(rf *schema.ExternalRiofile) (*Riofile, error) {
 	riofile := &Riofile{
-		Services:         map[string]riov1.Service{},
-		Configs:          map[string]v1.ConfigMap{},
-		Routers:          map[string]riov1.Router{},
-		ExternalServices: map[string]riov1.ExternalService{},
+		//Services:         map[string]riov1.Service{},
+		//Configs:          map[string]v1.ConfigMap{},
+		//Routers:          map[string]riov1.Router{},
+		//ExternalServices: map[string]riov1.ExternalService{},
 	}
-
-	for k, v := range rf.Services {
-		v.Name = k
-		riofile.Services[k] = v
-	}
-
-	for k, v := range rf.Configs {
-		v.Name = k
-		riofile.Configs[k] = v
-	}
-
-	for k, v := range rf.Routers {
-		v.Name = k
-		riofile.Routers[k] = v
-	}
-
-	for k, v := range rf.ExternalServices {
-		v.Name = k
-		riofile.ExternalServices[k] = v
-	}
+	//
+	//for k, v := range rf.Services {
+	//	v.Name = k
+	//	riofile.Services[k] = v
+	//}
+	//
+	//for k, v := range rf.Configs {
+	//	v.Name = k
+	//	riofile.Configs[k] = v
+	//}
+	//
+	//for k, v := range rf.Routers {
+	//	v.Name = k
+	//	riofile.Routers[k] = v
+	//}
+	//
+	//for k, v := range rf.ExternalServices {
+	//	v.Name = k
+	//	riofile.ExternalServices[k] = v
+	//}
 
 	if rf.Kubernetes != nil {
 		if rf.Kubernetes.Manifest != "" {

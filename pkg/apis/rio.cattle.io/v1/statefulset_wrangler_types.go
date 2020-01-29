@@ -12,8 +12,8 @@ type StatefulSetWrangler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DeploymentWranglerSpec   `json:"spec,omitempty"`
-	Status DeploymentWranglerStatus `json:"status,omitempty"`
+	Spec   StatefulSetWranglerSpec   `json:"spec,omitempty"`
+	Status StatefulSetWranglerStatus `json:"status,omitempty"`
 }
 
 type StatefulSetWranglerSpec struct {
@@ -25,6 +25,18 @@ type StatefulSetWranglerSpec struct {
 
 type StatefulSetWranglerStatus struct {
 	WranglerStatus
+}
+
+func (ssw StatefulSetWrangler) GetMeta() metav1.ObjectMeta {
+	return ssw.ObjectMeta
+}
+
+func (ssw StatefulSetWrangler) GetSpec() WranglerSpec {
+	return ssw.Spec.WranglerSpec
+}
+
+func (ssw StatefulSetWrangler) GetStatus() WranglerStatus {
+	return ssw.Status.WranglerStatus
 }
 
 type VolumeTemplate struct {

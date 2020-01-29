@@ -10,7 +10,7 @@ type Kubernetes struct {
 }
 
 type ExternalRiofile struct {
-	Services         map[string]riov1.Service         `json:"services,omitempty"`
+	//Services         map[string]riov1.Service         `json:"services,omitempty"`
 	Configs          map[string]v1.ConfigMap          `json:"configs,omitempty"`
 	Routers          map[string]riov1.Router          `json:"routers,omitempty"`
 	ExternalServices map[string]riov1.ExternalService `json:"externalservices,omitempty"`

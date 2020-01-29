@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	adminv1 "github.com/rancher/rio/pkg/apis/admin.rio.cattle.io/v1"
-	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
-	"github.com/rancher/rio/pkg/services"
 	"github.com/rancher/rio/types"
 )
 
@@ -19,7 +17,7 @@ const (
 func RegisterIndexes(rContext *types.Context) {
 	publicDomain(rContext)
 	secrets(rContext)
-	service(rContext)
+	//service(rContext)
 }
 
 func publicDomain(rContext *types.Context) {
@@ -66,11 +64,11 @@ func secrets(rContext *types.Context) {
 	})
 }
 
-func service(rContext *types.Context) {
-	rContext.Rio.Rio().V1().Service().Cache().AddIndexer(ServiceByApp, func(obj *riov1.Service) ([]string, error) {
-		app, _ := services.AppAndVersion(obj)
-		return []string{
-			fmt.Sprintf("%s/%s", obj.Namespace, app),
-		}, nil
-	})
-}
+//func service(rContext *types.Context) {
+//	rContext.Rio.Rio().V1().Service().Cache().AddIndexer(ServiceByApp, func(obj *riov1.Service) ([]string, error) {
+//		app, _ := services.AppAndVersion(obj)
+//		return []string{
+//			fmt.Sprintf("%s/%s", obj.Namespace, app),
+//		}, nil
+//	})
+//}
