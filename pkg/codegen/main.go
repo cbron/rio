@@ -32,7 +32,6 @@ func main() {
 				Types: []interface{}{
 					riov1.ExternalService{},
 					riov1.Router{},
-					//riov1.Service{},
 					riov1.Stack{},
 					riov1.DeploymentWrangler{},
 					riov1.StatefulSetWrangler{},

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/rio/modules/service/controllers/deploymentwrangler"
+	"github.com/rancher/rio/modules/service/controllers/externalservice"
 	"github.com/rancher/rio/modules/service/controllers/statefulsetwrangler"
 	"github.com/rancher/rio/pkg/features"
 	"github.com/rancher/rio/types"
@@ -18,7 +19,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		},
 		Controllers: []features.ControllerRegister{
 			//app.Register,
-			//externalservice.Register,
+			externalservice.Register,
 			//router.Register,
 			deploymentwrangler.Register,
 			statefulsetwrangler.Register,

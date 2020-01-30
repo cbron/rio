@@ -3,9 +3,10 @@ package statefulsetwrangler
 import (
 	"context"
 
-	"github.com/rancher/rio/modules/service/controllers/statefulsetwrangler/populate"
+	"github.com/rancher/rio/modules/service/pkg/populate/k8sservice"
 
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
+	v1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 	adminv1 "github.com/rancher/rio/pkg/generated/controllers/admin.rio.cattle.io/v1"
 	riov1controller "github.com/rancher/rio/pkg/generated/controllers/rio.cattle.io/v1"
 	"github.com/rancher/rio/types"
@@ -56,51 +57,10 @@ func (sswh *statefulSetWranglerHandler) generate(ssw *riov1.StatefulSetWrangler,
 		return nil, status, generic.ErrSkip
 	}
 	os := objectset.NewObjectSet()
-	populate.StatefulSetWrangler(ssw, os)
+	populate(ssw, os)
 	return os.All(), status, nil
 }
 
-//func (dwh *deploymentWranglerHandler) ensureFeatures(dw *riov1.DeploymentWrangler) error {
-//	cm, err := dwh.configmaps.Get(dwh.namespace, config.ConfigName, metav1.GetOptions{})
-//	if err != nil {
-//		return err
-//	}
-//
-//	conf, err := config.FromConfigMap(cm)
-//	if err != nil {
-//		return err
-//	}
-//
-//	t := true
-//	if services.AutoscaleEnable(service) && arch.IsAmd64() {
-//		if conf.Features == nil {
-//			conf.Features = map[string]config.FeatureConfig{}
-//		}
-//		f := conf.Features["autoscaling"]
-//		f.Enabled = &t
-//		conf.Features["autoscaling"] = f
-//	}
-//
-//	for _, con := range services.ToNamedContainers(service) {
-//		if con.ImageBuild != nil && con.ImageBuild.Repo != "" && arch.IsAmd64() {
-//			if conf.Features == nil {
-//				conf.Features = map[string]config.FeatureConfig{}
-//			}
-//			f := conf.Features["build"]
-//			f.Enabled = &t
-//			conf.Features["build"] = f
-//			break
-//		}
-//	}
-//
-//	cm, err = config.SetConfig(cm, conf)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if _, err := dwh.configmaps.Update(cm); err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
+func populate(ssw *v1.StatefulSetWrangler, os *objectset.ObjectSet) {
+	k8sservice.Populate(ssw, os)
+}

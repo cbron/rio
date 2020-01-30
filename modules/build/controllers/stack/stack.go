@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	webhookv1 "github.com/rancher/gitwatcher/pkg/apis/gitwatcher.cattle.io/v1"
-	"github.com/rancher/rio/modules/service/pkg/populate/rbac"
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 	"github.com/rancher/rio/pkg/constants"
 	"github.com/rancher/rio/pkg/constructors"

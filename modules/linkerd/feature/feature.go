@@ -56,7 +56,8 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		},
 		OnStart: func() error {
 			injector.RegisterInjector()
-			rContext.Rio.Rio().V1().Service().Enqueue("*", "*")
+			rContext.Rio.Rio().V1().DeploymentWrangler().Enqueue("*", "*")
+			rContext.Rio.Rio().V1().StatefulSetWrangler().Enqueue("*", "*")
 			return nil
 		},
 	}

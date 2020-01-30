@@ -4,6 +4,7 @@ const (
 	ConfigsDefaultPath = "/run/configs"
 )
 
+//
 //type ConfigsStringer struct {
 //	DataMountStringer
 //}

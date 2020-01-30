@@ -3,7 +3,8 @@ package deploymentwrangler
 import (
 	"context"
 
-	"github.com/rancher/rio/modules/service/controllers/deploymentwrangler/populate"
+	"github.com/rancher/rio/modules/service/pkg/populate/k8sservice"
+
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 	adminv1 "github.com/rancher/rio/pkg/generated/controllers/admin.rio.cattle.io/v1"
 	riov1controller "github.com/rancher/rio/pkg/generated/controllers/rio.cattle.io/v1"
@@ -40,6 +41,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 			rContext.RBAC.Rbac().V1().Role(),
 			rContext.RBAC.Rbac().V1().RoleBinding(),
 			rContext.Apps.Apps().V1().Deployment(),
+			rContext.Core.Core().V1().Service(),
 			rContext.Core.Core().V1().ServiceAccount(),
 			rContext.Core.Core().V1().Secret()).
 			WithRateLimiting(20), // is this right ?
@@ -59,7 +61,7 @@ func (dwh *deploymentWranglerHandler) generate(dw *riov1.DeploymentWrangler, sta
 		return nil, status, generic.ErrSkip
 	}
 	os := objectset.NewObjectSet()
-	populate.DeploymentWrangler(dw, os)
+	populate(dw, os)
 	return os.All(), status, nil
 
 	//existingDeploy, err := dwh.deploymentCache.Get(dw.Namespace, dw.Name)
@@ -80,6 +82,10 @@ func (dwh *deploymentWranglerHandler) generate(dw *riov1.DeploymentWrangler, sta
 	//	return nil, status, err
 	//}
 	//return []runtime.Object{service}, status, nil
+}
+
+func populate(dw *riov1.DeploymentWrangler, os *objectset.ObjectSet) {
+	k8sservice.Populate(dw, os)
 }
 
 //func (dwh *deploymentWranglerHandler) ensureFeatures(dw *riov1.DeploymentWrangler) error {

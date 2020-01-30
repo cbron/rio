@@ -247,30 +247,30 @@ func merge(labels1, labels2 map[string]interface{}) map[string]interface{} {
 func toRiofile(rf *schema.ExternalRiofile) (*Riofile, error) {
 	riofile := &Riofile{
 		//Services:         map[string]riov1.Service{},
-		//Configs:          map[string]v1.ConfigMap{},
-		//Routers:          map[string]riov1.Router{},
-		//ExternalServices: map[string]riov1.ExternalService{},
+		Configs:          map[string]v1.ConfigMap{},
+		Routers:          map[string]riov1.Router{},
+		ExternalServices: map[string]riov1.ExternalService{},
 	}
-	//
+
 	//for k, v := range rf.Services {
 	//	v.Name = k
 	//	riofile.Services[k] = v
 	//}
-	//
-	//for k, v := range rf.Configs {
-	//	v.Name = k
-	//	riofile.Configs[k] = v
-	//}
-	//
-	//for k, v := range rf.Routers {
-	//	v.Name = k
-	//	riofile.Routers[k] = v
-	//}
-	//
-	//for k, v := range rf.ExternalServices {
-	//	v.Name = k
-	//	riofile.ExternalServices[k] = v
-	//}
+
+	for k, v := range rf.Configs {
+		v.Name = k
+		riofile.Configs[k] = v
+	}
+
+	for k, v := range rf.Routers {
+		v.Name = k
+		riofile.Routers[k] = v
+	}
+
+	for k, v := range rf.ExternalServices {
+		v.Name = k
+		riofile.ExternalServices[k] = v
+	}
 
 	if rf.Kubernetes != nil {
 		if rf.Kubernetes.Manifest != "" {

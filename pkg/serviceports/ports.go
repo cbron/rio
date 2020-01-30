@@ -50,7 +50,6 @@ func Protocol(proto riov1.Protocol) (protocol v1.Protocol) {
 //}
 
 func ServiceNamedPorts(w riov1.Wrangler) (servicePorts []v1.ServicePort) {
-	//for _, port := range ContainerPorts(w) {
 	for _, port := range w.GetSpec().Ports {
 		servicePort := v1.ServicePort{
 			Name:     port.Name,
@@ -62,7 +61,7 @@ func ServiceNamedPorts(w riov1.Wrangler) (servicePorts []v1.ServicePort) {
 		}
 
 		if servicePort.Name == "" {
-			servicePort.Name = strings.ToLower(fmt.Sprintf("%s-%d", port.Protocol, port.Port))
+			servicePort.Name = strings.ToLower(fmt.Sprintf("%s-%d", servicePort.Protocol, servicePort.Port))
 		}
 
 		servicePorts = append(servicePorts, servicePort)

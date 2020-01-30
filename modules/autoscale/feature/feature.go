@@ -9,7 +9,10 @@ import (
 )
 
 func Register(ctx context.Context, rContext *types.Context) error {
-	apply := rContext.Apply.WithCacheTypes(rContext.Rio.Rio().V1().Service())
+	apply := rContext.Apply.WithCacheTypes(
+		rContext.Rio.Rio().V1().DeploymentWrangler(),
+		rContext.Rio.Rio().V1().StatefulSetWrangler(),
+	)
 	feature := &features.FeatureController{
 		FeatureName: "autoscaling",
 		FeatureSpec: features.FeatureSpec{

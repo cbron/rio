@@ -16,3 +16,4 @@ __pycache__
 /tests/.idea
 /tests/MANIFEST
 main
+.DS_Store
