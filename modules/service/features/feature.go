@@ -29,6 +29,5 @@ func Register(ctx context.Context, rContext *types.Context) error {
 			//template.Register,
 		},
 	}
-
 	return feature.Register()
 }

@@ -333,6 +333,10 @@ func (a *routerGeneratingHandler) Handle(obj *v1.Router, status v1.RouterStatus)
 		apply = apply.WithRestrictClusterScoped()
 	}
 
+	if a.opts.WithoutOwnerReference {
+		apply = apply.WithoutOwnerReference()
+	}
+
 	return newStatus, apply.
 		WithOwner(obj).
 		WithSetID(a.name).

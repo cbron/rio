@@ -1,89 +1,53 @@
 package podcontrollers
 
-//
-//func Populate(service *riov1.Service, os *objectset.ObjectSet) error {
-//	if isDeploymentWrangler(service.Annotations) {
-//		return nil
-//	}
-//	podTemplateSpec, err := pod.Populate(service, os)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if !allImagesSet(podTemplateSpec) {
-//		return nil
-//	}
-//
-//	cp := newControllerParams(service, podTemplateSpec)
-//	if service.Spec.Global {
-//		daemonset(service, cp, os)
-//	} else if len(cp.VolumeTemplates) > 0 {
-//		statefulset(service, cp, os)
-//	} else {
-//		deployment(service, cp, os)
-//	}
-//
-//	return nil
-//}
-//
-//func allImagesSet(podTemplate v1.PodTemplateSpec) bool {
-//	for _, container := range podTemplate.Spec.Containers {
-//		if container.Image == "" {
-//			return false
-//		}
-//	}
-//	for _, container := range podTemplate.Spec.InitContainers {
-//		if container.Image == "" {
-//			return false
-//		}
-//	}
-//	return true
-//}
-//
-//func newControllerParams(service *riov1.Service, podTemplateSpec v1.PodTemplateSpec) *controllerParams {
-//	scaleParams := parseScaleParams(service)
-//	selectorLabels := servicelabels.SelectorLabels(service)
-//	labels := servicelabels.ServiceLabels(service)
-//	volumeTemplates := pod.NormalizeVolumeTemplates(service)
-//	annotations := annotations(service)
-//
-//	// Selector labels must be on the podTemplateSpec
-//	podTemplateSpec.Labels = servicelabels.Merge(podTemplateSpec.Labels, selectorLabels)
-//
-//	return &controllerParams{
-//		Scale:           scaleParams,
-//		Labels:          labels,
-//		Annotations:     annotations,
-//		SelectorLabels:  selectorLabels,
-//		PodTemplateSpec: podTemplateSpec,
-//		VolumeTemplates: volumeTemplates,
-//	}
-//}
-//
-//func annotations(service *riov1.Service) map[string]string {
-//	result := map[string]string{}
-//	if service.Spec.ServiceMesh != nil && !*service.Spec.ServiceMesh {
-//		result["rio.cattle.io/mesh"] = "false"
-//	} else {
-//		result["rio.cattle.io/mesh"] = "true"
-//	}
-//	return result
-//}
-//
-//type controllerParams struct {
-//	Scale           scaleParams
-//	Labels          map[string]string
-//	Annotations     map[string]string
-//	SelectorLabels  map[string]string
-//	VolumeTemplates map[string]riov1.VolumeTemplate
-//	PodTemplateSpec v1.PodTemplateSpec
-//}
-//
-//func isDeploymentWrangler(annotations map[string]string) bool {
-//	if anno, ok := annotations[constants.DeploymentWranglerLabel]; ok {
-//		if anno == "true" {
-//			return true
-//		}
-//	}
-//	return false
-//}
+import (
+	"github.com/rancher/rio/modules/service/pkg/populate/labels"
+	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
+	"github.com/rancher/wrangler/pkg/objectset"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+)
+
+// Deployment adds any necessary objects for a DW and returns bool if a deploy deletion is necessary
+func Deployment(dw *riov1.DeploymentWrangler, deploy *appsv1.Deployment, os *objectset.ObjectSet) (replaceDeployment bool) {
+	params := newControllerParams(dw)
+	replaceDeployment = newDeployment(deploy, params, os)
+	return
+}
+
+// todo: fix up statefulSet
+func StatefulSet(ssw riov1.StatefulSetWrangler, ss *appsv1.StatefulSet, os *objectset.ObjectSet) (replaceStatefulSet bool) {
+	//params := newControllerParams(ssw)
+	//replaceStatefulSet = statefulset(ss, params, os)
+	return
+}
+
+type controllerParams struct {
+	ResourceLabels  map[string]string
+	ParentLabels    map[string]string
+	MeshAnnotations map[string]string
+	SelectorLabels  map[string]string
+}
+
+func newControllerParams(w riov1.Wrangler) *controllerParams {
+	return &controllerParams{
+		ResourceLabels:  labels.ResourceLabels(w),
+		ParentLabels:    labels.ParentLabels(w),
+		MeshAnnotations: labels.MeshAnnotations(w),
+		SelectorLabels:  labels.SelectorLabels(w),
+	}
+}
+
+func allImagesSet(podTemplate corev1.PodTemplateSpec) bool {
+	for _, container := range podTemplate.Spec.Containers {
+		if container.Image == "" {
+			return false
+		}
+	}
+	for _, container := range podTemplate.Spec.InitContainers {
+		if container.Image == "" {
+			return false
+		}
+	}
+	return true
+}

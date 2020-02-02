@@ -333,6 +333,10 @@ func (a *clusterDomainGeneratingHandler) Handle(obj *v1.ClusterDomain, status v1
 		apply = apply.WithRestrictClusterScoped()
 	}
 
+	if a.opts.WithoutOwnerReference {
+		apply = apply.WithoutOwnerReference()
+	}
+
 	return newStatus, apply.
 		WithOwner(obj).
 		WithSetID(a.name).

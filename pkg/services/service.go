@@ -2,6 +2,8 @@ package services
 
 import (
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func AppAndVersion(w riov1.Wrangler) (string, string) {
@@ -19,6 +21,15 @@ func AppAndVersion(w riov1.Wrangler) (string, string) {
 		}
 	}
 	return app, version
+}
+
+func CleanMetadata(meta v1.ObjectMeta) v1.ObjectMeta {
+	meta.UID = ""
+	meta.SelfLink = ""
+	meta.ResourceVersion = ""
+	meta.CreationTimestamp = metav1.Time{}
+	meta.DeletionTimestamp = &metav1.Time{}
+	return meta
 }
 
 //func RootContainerName(w riov1.Wrangler) string {

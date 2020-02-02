@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rancher/rio/modules/service/controllers/service/populate/rbac"
 	"github.com/rancher/wrangler/pkg/kubeconfig"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/kubernetes"

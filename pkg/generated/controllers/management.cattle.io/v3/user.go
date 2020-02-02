@@ -333,6 +333,10 @@ func (a *userGeneratingHandler) Handle(obj *v3.User, status v3.UserStatus) (v3.U
 		apply = apply.WithRestrictClusterScoped()
 	}
 
+	if a.opts.WithoutOwnerReference {
+		apply = apply.WithoutOwnerReference()
+	}
+
 	return newStatus, apply.
 		WithOwner(obj).
 		WithSetID(a.name).

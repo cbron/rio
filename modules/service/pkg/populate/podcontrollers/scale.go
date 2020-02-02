@@ -1,18 +1,19 @@
 package podcontrollers
 
 //
+////
 //type scaleParams struct {
 //	Scale          *int32
 //	MaxSurge       *intstr.IntOrString
 //	MaxUnavailable *intstr.IntOrString
 //}
 //
-//func parseScaleParams(service *riov1.Service) scaleParams {
+//func parseScaleParams(w riov1.Wrangler) scaleParams {
 //	var scale *int
-//	scale = service.Spec.Replicas
+//	scale = w.GetSpec().Replicas
 //
-//	if service.Status.ComputedReplicas != nil && services.AutoscaleEnable(service) {
-//		scale = service.Status.ComputedReplicas
+//	if w.GetStatus().ComputedReplicas != nil && services.AutoscaleEnable(w) {
+//		scale = w.GetStatus().ComputedReplicas
 //	}
 //
 //	// at one point we told users that -1 meant we don't control scale. nil is now that behavior
@@ -21,8 +22,8 @@ package podcontrollers
 //	}
 //
 //	sp := scaleParams{
-//		MaxSurge:       service.Spec.MaxSurge,
-//		MaxUnavailable: service.Spec.MaxUnavailable,
+//		MaxSurge:       w.GetSpec().MaxSurge,
+//		MaxUnavailable: w.GetSpec().MaxUnavailable,
 //	}
 //
 //	if scale != nil {

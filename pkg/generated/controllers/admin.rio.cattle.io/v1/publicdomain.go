@@ -333,6 +333,10 @@ func (a *publicDomainGeneratingHandler) Handle(obj *v1.PublicDomain, status v1.P
 		apply = apply.WithRestrictClusterScoped()
 	}
 
+	if a.opts.WithoutOwnerReference {
+		apply = apply.WithoutOwnerReference()
+	}
+
 	return newStatus, apply.
 		WithOwner(obj).
 		WithSetID(a.name).
