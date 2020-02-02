@@ -29,7 +29,7 @@ type controllerParams struct {
 	SelectorLabels  map[string]string
 }
 
-func newControllerParams(w riov1.Wrangler) *controllerParams {
+func newControllerParams(w riov1.Workload) *controllerParams {
 	return &controllerParams{
 		ResourceLabels:  labels.ResourceLabels(w),
 		ParentLabels:    labels.ParentLabels(w),

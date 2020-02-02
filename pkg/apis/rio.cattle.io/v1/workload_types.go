@@ -10,27 +10,14 @@ var (
 	ServiceConditionImageReady = condition.Cond("ImageReady")
 )
 
-// Service acts as a top level resource for a container and its sidecars and routing resources.
-// Each service represents an individual revision, grouped by Spec.App(defaults to Service.Name), and Spec.Version(defaults to v0)
-//type Service struct {
-//	metav1.TypeMeta   `json:",inline"`
-//	metav1.ObjectMeta `json:"metadata,omitempty"`
-//
-//	Spec   ServiceSpec   `json:"spec,omitempty"`
-//	Status ServiceStatus `json:"status,omitempty"`
-//}
-
-type Wrangler interface {
-	//Labels() map[string]string
-	//Obj() metav1.Object
+type Workload interface {
 	GetMeta() metav1.ObjectMeta
-	GetSpec() WranglerSpec
-	GetStatus() WranglerStatus
-	//AppAndVersion() (string, string)
+	GetSpec() WorkloadSpec
+	GetStatus() WorkloadStatus
 }
 
 // ServiceSpec represents spec for Service
-type WranglerSpec struct {
+type WorkloadSpec struct {
 	//PodConfig
 
 	// Version of this service
@@ -362,7 +349,7 @@ func (in ContainerPort) IsExposed() bool {
 	return in.IsHTTP()
 }
 
-type WranglerStatus struct {
+type WorkloadStatus struct {
 	// DeploymentReady for ready status on deployment
 	DeploymentReady bool `json:"deploymentReady,omitempty"`
 

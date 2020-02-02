@@ -63,7 +63,7 @@ func (sswh *statefulSetWranglerHandler) generate(ssw *riov1.StatefulSetWrangler,
 	if err != nil {
 		return nil, status, err
 	}
-	if ssw.Spec.WranglerSpec.Template {
+	if ssw.Spec.WorkloadSpec.Template {
 		return nil, status, generic.ErrSkip
 	}
 	if err := sswh.ensureFeatures(ssw); err != nil {

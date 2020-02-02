@@ -13,11 +13,11 @@ import (
 )
 
 // Creates service for this version of app
-func Populate(shared riov1.Wrangler, os *objectset.ObjectSet) {
+func Populate(shared riov1.Workload, os *objectset.ObjectSet) {
 	serviceSelector(shared, os)
 }
 
-func serviceSelector(w riov1.Wrangler, os *objectset.ObjectSet) {
+func serviceSelector(w riov1.Workload, os *objectset.ObjectSet) {
 	resourceLabels := labels.ResourceLabels(w)
 	selectorLabels := labels.SelectorLabels(w)
 	app, version := services.AppAndVersion(w) // todo: rename this services package, it references rio service

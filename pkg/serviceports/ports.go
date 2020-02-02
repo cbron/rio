@@ -22,7 +22,7 @@ func Protocol(proto riov1.Protocol) (protocol v1.Protocol) {
 	return
 }
 
-//func ContainerPorts(w riov1.Wrangler) []riov1.ContainerPort {
+//func ContainerPorts(w riov1.Workload) []riov1.ContainerPort {
 //	var (
 //		ports   []riov1.ContainerPort
 //		portMap = map[string]bool{}
@@ -49,7 +49,7 @@ func Protocol(proto riov1.Protocol) (protocol v1.Protocol) {
 //	return ports
 //}
 
-func ServiceNamedPorts(w riov1.Wrangler) (servicePorts []v1.ServicePort) {
+func ServiceNamedPorts(w riov1.Workload) (servicePorts []v1.ServicePort) {
 	for _, port := range w.GetSpec().Ports {
 		servicePort := v1.ServicePort{
 			Name:     port.Name,

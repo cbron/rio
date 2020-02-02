@@ -72,7 +72,7 @@ func (dwh *deploymentWranglerHandler) generate(dw *riov1.DeploymentWrangler, sta
 	if err != nil {
 		return nil, status, err
 	}
-	if dw.Spec.WranglerSpec.Template {
+	if dw.Spec.WorkloadSpec.Template {
 		return nil, status, generic.ErrSkip
 	}
 	if err := dwh.ensureFeatures(dw); err != nil {
@@ -90,7 +90,7 @@ func (dwh *deploymentWranglerHandler) populate(dw *riov1.DeploymentWrangler, exi
 	k8sservice.Populate(dw, os)
 	replaceDeployment := podcontrollers.Deployment(dw, existing, os)
 	if replaceDeployment == true {
-		fmt.Printf("Deployment Wrangler \"%s\" found matching deployment, recreating...\n", dw.Name)
+		fmt.Printf("DeploymentWrangler \"%s\" found matching deployment, recreating...\n", dw.Name)
 		err := dwh.deploymentClient.Delete(existing.Namespace, existing.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			return err
@@ -114,7 +114,7 @@ func (dwh *deploymentWranglerHandler) ensureFeatures(dw *riov1.DeploymentWrangle
 	return nil
 }
 
-func UpdateConfigForApp(cm *v1.ConfigMap, w riov1.Wrangler) error {
+func UpdateConfigForApp(cm *v1.ConfigMap, w riov1.Workload) error {
 	conf, err := config.FromConfigMap(cm)
 	if err != nil {
 		return err

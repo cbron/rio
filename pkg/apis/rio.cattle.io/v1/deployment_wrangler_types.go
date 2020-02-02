@@ -16,21 +16,21 @@ type DeploymentWrangler struct {
 }
 
 type DeploymentWranglerSpec struct {
-	WranglerSpec
+	WorkloadSpec
 }
 
 type DeploymentWranglerStatus struct {
-	WranglerStatus
+	WorkloadStatus
 }
 
 func (dw DeploymentWrangler) GetMeta() metav1.ObjectMeta {
 	return dw.ObjectMeta
 }
 
-func (dw DeploymentWrangler) GetSpec() WranglerSpec {
-	return dw.Spec.WranglerSpec
+func (dw DeploymentWrangler) GetSpec() WorkloadSpec {
+	return dw.Spec.WorkloadSpec
 }
 
-func (dw DeploymentWrangler) GetStatus() WranglerStatus {
-	return dw.Status.WranglerStatus
+func (dw DeploymentWrangler) GetStatus() WorkloadStatus {
+	return dw.Status.WorkloadStatus
 }

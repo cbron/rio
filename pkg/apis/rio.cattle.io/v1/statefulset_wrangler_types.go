@@ -17,26 +17,26 @@ type StatefulSetWrangler struct {
 }
 
 type StatefulSetWranglerSpec struct {
-	WranglerSpec
+	WorkloadSpec
 
 	// maybe not here exactly but you get idea
 	VolumeTemplates []VolumeTemplate `json:"volumeTemplates,omitempty"`
 }
 
 type StatefulSetWranglerStatus struct {
-	WranglerStatus
+	WorkloadStatus
 }
 
 func (ssw StatefulSetWrangler) GetMeta() metav1.ObjectMeta {
 	return ssw.ObjectMeta
 }
 
-func (ssw StatefulSetWrangler) GetSpec() WranglerSpec {
-	return ssw.Spec.WranglerSpec
+func (ssw StatefulSetWrangler) GetSpec() WorkloadSpec {
+	return ssw.Spec.WorkloadSpec
 }
 
-func (ssw StatefulSetWrangler) GetStatus() WranglerStatus {
-	return ssw.Status.WranglerStatus
+func (ssw StatefulSetWrangler) GetStatus() WorkloadStatus {
+	return ssw.Status.WorkloadStatus
 }
 
 type VolumeTemplate struct {

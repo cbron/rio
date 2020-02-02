@@ -50,7 +50,7 @@ func (rh *rolloutHandler) rolloutSSW(key string, ssw *riov1.StatefulSetWrangler)
 	return ssw, err
 }
 
-func (rh *rolloutHandler) rollout(key string, w riov1.Wrangler) (*riov1.Service, error) {
+func (rh *rolloutHandler) rollout(key string, w riov1.Workload) (*riov1.Service, error) {
 	if svc == nil || svc.DeletionTimestamp != nil {
 		return nil, nil
 	}
