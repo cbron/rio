@@ -34,3 +34,11 @@ func (dw DeploymentWrangler) GetSpec() WorkloadSpec {
 func (dw DeploymentWrangler) GetStatus() WorkloadStatus {
 	return dw.Status.WorkloadStatus
 }
+
+func DeploymentWranglerWorkloadSlice(items []*DeploymentWrangler) []Workload {
+	wItems := make([]Workload, len(items))
+	for i, v := range items {
+		wItems[i] = Workload(v)
+	}
+	return wItems
+}

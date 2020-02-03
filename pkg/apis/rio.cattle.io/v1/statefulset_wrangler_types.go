@@ -65,3 +65,11 @@ type VolumeTemplate struct {
 	// +optional
 	VolumeMode *v1.PersistentVolumeMode `json:"volumeMode,omitempty"`
 }
+
+func StatefulSetWranglerWorkloadSlice(items []*StatefulSetWrangler) []Workload {
+	wItems := make([]Workload, len(items))
+	for i, v := range items {
+		wItems[i] = Workload(v)
+	}
+	return wItems
+}

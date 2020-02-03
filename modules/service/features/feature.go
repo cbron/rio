@@ -3,6 +3,7 @@ package features
 import (
 	"context"
 
+	"github.com/rancher/rio/modules/service/controllers/app"
 	"github.com/rancher/rio/modules/service/controllers/deploymentwrangler"
 	"github.com/rancher/rio/modules/service/controllers/externalservice"
 	"github.com/rancher/rio/modules/service/controllers/statefulsetwrangler"
@@ -18,7 +19,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 			Description: "Rio Service Based UX - required",
 		},
 		Controllers: []features.ControllerRegister{
-			//app.Register,
+			app.Register,
 			externalservice.Register,
 			//router.Register,
 			deploymentwrangler.Register,

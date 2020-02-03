@@ -2,8 +2,9 @@ package indexes
 
 import (
 	"fmt"
-
 	adminv1 "github.com/rancher/rio/pkg/apis/admin.rio.cattle.io/v1"
+	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
+	"github.com/rancher/rio/pkg/services"
 	"github.com/rancher/rio/types"
 )
 
@@ -12,12 +13,16 @@ const (
 	ClusterDomainByAssignedSecret = "bySecret"
 	PublicDomainByAssignedSecret  = "bySecret"
 	ServiceByApp                  = "apps"
+	DWByApp                       = "dwByApp"
+	SSWByApp                      = "sswByApp"
 )
 
 func RegisterIndexes(rContext *types.Context) {
 	publicDomain(rContext)
 	secrets(rContext)
 	//service(rContext)
+	deploymentWrangler(rContext)
+	statefulSetWrangler(rContext)
 }
 
 func publicDomain(rContext *types.Context) {
@@ -64,6 +69,7 @@ func secrets(rContext *types.Context) {
 	})
 }
 
+//
 //func service(rContext *types.Context) {
 //	rContext.Rio.Rio().V1().Service().Cache().AddIndexer(ServiceByApp, func(obj *riov1.Service) ([]string, error) {
 //		app, _ := services.AppAndVersion(obj)
@@ -72,3 +78,21 @@ func secrets(rContext *types.Context) {
 //		}, nil
 //	})
 //}
+
+func deploymentWrangler(rContext *types.Context) {
+	rContext.Rio.Rio().V1().DeploymentWrangler().Cache().AddIndexer(DWByApp, func(dw *riov1.DeploymentWrangler) ([]string, error) {
+		app, _ := services.AppAndVersion(dw)
+		return []string{
+			fmt.Sprintf("%s/%s", dw.Namespace, app),
+		}, nil
+	})
+}
+
+func statefulSetWrangler(rContext *types.Context) {
+	rContext.Rio.Rio().V1().StatefulSetWrangler().Cache().AddIndexer(SSWByApp, func(ssw *riov1.StatefulSetWrangler) ([]string, error) {
+		app, _ := services.AppAndVersion(ssw)
+		return []string{
+			fmt.Sprintf("%s/%s", ssw.Namespace, app),
+		}, nil
+	})
+}

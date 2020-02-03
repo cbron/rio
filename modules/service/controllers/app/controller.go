@@ -23,113 +23,162 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+const AppServiceLabel = "rio.cattle.io/app"
+
+// The app controller creates and manages the app (un-versioned) k8s service
 func Register(ctx context.Context, rContext *types.Context) error {
-	appSelector, err := labels.Parse("rio.cattle.io/app")
+	appSelector, err := labels.Parse(AppServiceLabel)
 	if err != nil {
 		return err
 	}
 
 	h := &handler{
-		serviceCache: rContext.Rio.Rio().V1().Service().Cache(),
-		services:     rContext.Core.Core().V1().Service(),
-		appSelector:  appSelector,
+		dwCache:     rContext.Rio.Rio().V1().DeploymentWrangler().Cache(),
+		sswCache:    rContext.Rio.Rio().V1().StatefulSetWrangler().Cache(),
+		services:    rContext.Core.Core().V1().Service(),
+		appSelector: appSelector,
 	}
 
-	rContext.Rio.Rio().V1().Service().OnChange(ctx, "app", h.onRioServiceChange)
+	rContext.Rio.Rio().V1().DeploymentWrangler().OnChange(ctx, "app", h.onDWServiceChange)
+	rContext.Rio.Rio().V1().StatefulSetWrangler().OnChange(ctx, "app", h.onSSWServiceChange)
 	rContext.Core.Core().V1().Service().OnChange(ctx, "app", h.onServiceChange)
 
 	relatedresource.Watch(ctx, "app",
 		resolveAppService,
 		rContext.Core.Core().V1().Service(),
-		rContext.Rio.Rio().V1().Service())
+		rContext.Rio.Rio().V1().DeploymentWrangler(),
+		rContext.Rio.Rio().V1().StatefulSetWrangler(),
+	)
 
 	return nil
 }
 
+// resolveAppService gets called on either workload update and enqueues its app
 func resolveAppService(_, _ string, obj runtime.Object) ([]relatedresource.Key, error) {
-	svc, ok := obj.(*riov1.Service)
-	if !ok {
+	var app, ns string
+	dw, ok := obj.(*riov1.DeploymentWrangler)
+	if ok {
+		app, _ = services.AppAndVersion(dw)
+		ns = dw.Namespace
+	} else {
+		ssw, ok := obj.(*riov1.StatefulSetWrangler)
+		if ok {
+			app, _ = services.AppAndVersion(ssw)
+			ns = dw.Namespace
+		}
+	}
+	if app == "" {
 		return nil, nil
 	}
-
-	app, _ := services.AppAndVersion(svc)
 	return []relatedresource.Key{
 		{
-			Namespace: svc.Namespace,
+			Namespace: ns,
 			Name:      app,
 		},
 	}, nil
 }
 
 type handler struct {
-	serviceCache riov1controller.ServiceCache
-	services     corev1controller.ServiceController
-	appSelector  labels.Selector
+	dwCache     riov1controller.DeploymentWranglerCache
+	sswCache    riov1controller.StatefulSetWranglerCache
+	services    corev1controller.ServiceController
+	appSelector labels.Selector
 }
 
-func (h *handler) onRioServiceChange(key string, svc *riov1.Service) (*riov1.Service, error) {
-	if svc == nil {
+func (h *handler) onDWServiceChange(key string, dw *riov1.DeploymentWrangler) (*riov1.DeploymentWrangler, error) {
+	if dw == nil {
 		return nil, nil
 	}
-
-	appName, _ := services.AppAndVersion(svc)
-	revisions, err := h.serviceCache.GetByIndex(indexes.ServiceByApp, fmt.Sprintf("%s/%s", svc.Namespace, appName))
+	appName, _ := services.AppAndVersion(dw)
+	revisions, err := h.dwCache.GetByIndex(indexes.DWByApp, fmt.Sprintf("%s/%s", dw.Namespace, appName))
 	if err != nil || len(revisions) == 0 {
-		return svc, err
+		return dw, err
 	}
+	err = h.WorkloadChange(appName, dw.Namespace, riov1.DeploymentWranglerWorkloadSlice(revisions))
+	if err != nil {
+		return dw, err
+	}
+	return dw, nil
+}
 
-	existingSvc, err := h.services.Cache().Get(svc.Namespace, appName)
+func (h *handler) onSSWServiceChange(key string, ssw *riov1.StatefulSetWrangler) (*riov1.StatefulSetWrangler, error) {
+	if ssw == nil {
+		return nil, nil
+	}
+	appName, _ := services.AppAndVersion(ssw)
+	revisions, err := h.sswCache.GetByIndex(indexes.SSWByApp, fmt.Sprintf("%s/%s", ssw.Namespace, appName))
+	if err != nil || len(revisions) == 0 {
+		return ssw, err
+	}
+	err = h.WorkloadChange(appName, ssw.Namespace, riov1.StatefulSetWranglerWorkloadSlice(revisions))
+	if err != nil {
+		return ssw, err
+	}
+	return ssw, nil
+}
+
+// On workload change, gather ports from all revisions and set on app svc
+func (h *handler) WorkloadChange(appName, ns string, revisions []riov1.Workload) error {
+	existingSvc, err := h.services.Cache().Get(ns, appName)
 	if err == nil {
 		ports := portsForService(revisions)
 		if !reflect.DeepEqual(existingSvc, ports) {
 			existingSvc.Spec.Ports = ports
 			if _, err := h.services.Update(existingSvc); err != nil {
-				return svc, err
+				return err
 			}
-			return svc, nil
+			return nil
 		}
 		// Already Exists
-		return svc, nil
+		return nil
 	}
 
-	appService := newService(svc.Namespace, appName, revisions)
+	appService := newService(ns, appName, revisions)
 	_, err = h.services.Create(appService)
 	if errors.IsAlreadyExists(err) {
 		// Already Exists
-		return svc, nil
+		return nil
 	}
 
-	return svc, err
+	return err
 }
 
+// todo: Do we want app service to get deleted if DW is deleted ?
+// onServiceChange checks if any rio workload exists for the app service, if not it removes it
 func (h *handler) onServiceChange(key string, svc *corev1.Service) (*corev1.Service, error) {
 	if svc == nil {
 		return nil, nil
 	}
-
-	appName := svc.Labels["rio.cattle.io/app"]
+	appName := svc.Labels[AppServiceLabel]
 	if appName == "" {
 		return svc, nil
 	}
 
-	values, err := h.serviceCache.GetByIndex(indexes.ServiceByApp, fmt.Sprintf("%s/%s", svc.Namespace, appName))
+	dwInstances, err := h.dwCache.GetByIndex(indexes.DWByApp, fmt.Sprintf("%s/%s", svc.Namespace, appName))
 	if err != nil {
 		return svc, err
 	}
-
-	if len(values) == 0 {
-		return svc, h.services.Delete(svc.Namespace, svc.Name, nil)
+	if len(dwInstances) > 0 {
+		return svc, err
 	}
 
-	return svc, nil
+	sswInstances, err := h.sswCache.GetByIndex(indexes.SSWByApp, fmt.Sprintf("%s/%s", svc.Namespace, appName))
+	if err != nil {
+		return svc, err
+	}
+	if len(sswInstances) > 0 {
+		return svc, err
+	}
+	// no rio workload for this svc, remove it
+	return svc, h.services.Delete(svc.Namespace, svc.Name, nil)
 }
 
-func newService(namespace, app string, serviceSet []*riov1.Service) *corev1.Service {
+func newService(namespace, app string, serviceSet []riov1.Workload) *corev1.Service {
 	ports := portsForService(serviceSet)
 	return constructors.NewService(namespace, app, corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				"rio.cattle.io/app": app,
+				AppServiceLabel: app,
 			},
 		},
 		Spec: corev1.ServiceSpec{
@@ -142,10 +191,10 @@ func newService(namespace, app string, serviceSet []*riov1.Service) *corev1.Serv
 	})
 }
 
-func portsForService(serviceSet []*riov1.Service) (result []corev1.ServicePort) {
+func portsForService(workloadSet []riov1.Workload) (result []corev1.ServicePort) {
 	ports := map[string]corev1.ServicePort{}
 
-	for _, rev := range serviceSet {
+	for _, rev := range workloadSet {
 		for _, port := range serviceports.ServiceNamedPorts(rev) {
 			ports[port.Name] = port
 		}
