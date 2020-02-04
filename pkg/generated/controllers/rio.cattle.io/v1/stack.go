@@ -333,10 +333,6 @@ func (a *stackGeneratingHandler) Handle(obj *v1.Stack, status v1.StackStatus) (v
 		apply = apply.WithRestrictClusterScoped()
 	}
 
-	if a.opts.WithoutOwnerReference {
-		apply = apply.WithoutOwnerReference()
-	}
-
 	return newStatus, apply.
 		WithOwner(obj).
 		WithSetID(a.name).

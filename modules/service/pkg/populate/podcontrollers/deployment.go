@@ -4,6 +4,7 @@ import (
 	"github.com/rancher/rio/modules/service/pkg/populate/labels"
 	"github.com/rancher/rio/pkg/constructors"
 	"github.com/rancher/rio/pkg/services"
+	"github.com/rancher/wrangler/pkg/apply"
 	"github.com/rancher/wrangler/pkg/objectset"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -36,6 +37,8 @@ func newDeployment(existing *appsv1.Deployment, cp *controllerParams, os *object
 	} else {
 		deploy = existing.DeepCopy()
 		deploy.ObjectMeta = services.CleanMetadata(deploy.ObjectMeta)
+		// We don't want to delete a pre-existing deployment if DW is deleted, so don't assign owner ref
+		deploy.Annotations[apply.DisableOwnerAssignment] = "true"
 	}
 
 	if !allImagesSet(deploy.Spec.Template) {

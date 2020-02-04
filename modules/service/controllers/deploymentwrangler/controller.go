@@ -56,9 +56,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		"DeploymentWranglerDeployed",
 		"deploymentwrangler",
 		dwh.generate,
-		&generic.GeneratingHandlerOptions{
-			WithoutOwnerReference: true, // if DW is deleted, don't clean up deployments/svcs
-		})
+		nil)
 	return nil
 }
 
