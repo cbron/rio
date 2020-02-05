@@ -7,13 +7,13 @@ import (
 	"github.com/rancher/wrangler/pkg/apply"
 	"github.com/rancher/wrangler/pkg/objectset"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 )
 
 func newDeployment(existing *appsv1.Deployment, cp *controllerParams, os *objectset.ObjectSet) bool {
 	var deploy *appsv1.Deployment
 	if existing == nil {
 		// todo:  case where rio makes deployment from build, need to copy a base deploy not create from scratch. Need to change name.
+		// todo: add pod selectors here, they don't end up in existing deployment because of immutability
 		deploy = &appsv1.Deployment{
 			//ObjectMeta: metav1.ObjectMeta{
 			//	Labels:      cp.Labels,
@@ -49,9 +49,10 @@ func newDeployment(existing *appsv1.Deployment, cp *controllerParams, os *object
 	// make new deployment object, add to os, and determine if delete is necessary
 	deploy = constructors.NewDeployment(deploy.Namespace, deploy.Name, *deploy)
 	replace := false
-	if existing != nil && !equality.Semantic.DeepEqual(existing.Spec.Selector, deploy.Spec.Selector) {
-		replace = true // rio-made deploy needs to be created, delete existing deploy because selector is immutable
-	}
+	// Not going this route for now, hoping to limit adjusting selector to only new deployments
+	//if existing != nil && !equality.Semantic.DeepEqual(existing.Spec.Selector, deploy.Spec.Selector) {
+	//	replace = true // rio-made deploy needs to be created, delete existing deploy because selector is immutable
+	//}
 	os.Add(deploy)
 	return replace
 }
@@ -60,8 +61,9 @@ func mergeDeploymentLabels(deploy *appsv1.Deployment, params *controllerParams) 
 	// add deployment obj labels
 	deploy.Labels = labels.Merge(deploy.Labels, params.ResourceLabels)
 
+	// todo: move this to new deployments
 	// add deployment's pod selector labels
-	deploy.Spec.Selector.MatchLabels = labels.Merge(deploy.Spec.Selector.MatchLabels, params.SelectorLabels)
+	//deploy.Spec.Selector.MatchLabels = labels.Merge(deploy.Spec.Selector.MatchLabels, params.SelectorLabels)
 
 	// add deployment's pod template labels and annotations
 	deploy.Spec.Template.Labels = labels.Merge(deploy.Spec.Template.Labels, params.SelectorLabels)

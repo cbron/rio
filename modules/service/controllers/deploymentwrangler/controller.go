@@ -86,14 +86,14 @@ func (dwh *deploymentWranglerHandler) generate(dw *riov1.DeploymentWrangler, sta
 
 func (dwh *deploymentWranglerHandler) populate(dw *riov1.DeploymentWrangler, existing *appsv1.Deployment, os *objectset.ObjectSet) error {
 	k8sservice.Populate(dw, os)
-	replaceDeployment := podcontrollers.Deployment(dw, existing, os)
-	if replaceDeployment == true {
-		fmt.Printf("DeploymentWrangler \"%s\" found matching deployment, recreating...\n", dw.Name)
-		err := dwh.deploymentClient.Delete(existing.Namespace, existing.Name, &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	}
+	_ = podcontrollers.Deployment(dw, existing, os)
+	//if replaceDeployment == true {
+	//	fmt.Printf("DeploymentWrangler \"%s\" found matching deployment, recreating...\n", dw.Name)
+	//	err := dwh.deploymentClient.Delete(existing.Namespace, existing.Name, &metav1.DeleteOptions{})
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 	return nil
 }
 
