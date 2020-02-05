@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/rio/modules/autoscale"
+	"github.com/rancher/rio/modules/build"
 	"github.com/rancher/rio/modules/dashboard"
 	"github.com/rancher/rio/modules/info"
 	"github.com/rancher/rio/modules/letsencrypt"
@@ -38,9 +39,9 @@ func Register(ctx context.Context, rContext *types.Context) error {
 	if err := letsencrypt.Register(ctx, rContext); err != nil {
 		return err
 	}
-	//if err := build.Register(ctx, rContext); err != nil {
-	//	return err
-	//}
+	if err := build.Register(ctx, rContext); err != nil {
+		return err
+	}
 	if err := autoscale.Register(ctx, rContext); err != nil {
 		return err
 	}

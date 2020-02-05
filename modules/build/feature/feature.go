@@ -27,7 +27,11 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		}
 	}
 
-	apply := rContext.Apply.WithCacheTypes(rContext.Rio.Rio().V1().Service(), rContext.Core.Core().V1().ConfigMap())
+	apply := rContext.Apply.WithCacheTypes(
+		rContext.Rio.Rio().V1().DeploymentWrangler(),
+		rContext.Rio.Rio().V1().StatefulSetWrangler(),
+		rContext.Core.Core().V1().ConfigMap(),
+	)
 	feature := &features.FeatureController{
 		FeatureName: "build",
 		FeatureSpec: features.FeatureSpec{
@@ -38,7 +42,6 @@ func Register(ctx context.Context, rContext *types.Context) error {
 			stack.NewSystemStack(rContext.Apply, rContext.Admin.Admin().V1().SystemStack(), rContext.Namespace, "tekton"),
 		},
 		Controllers: []features.ControllerRegister{
-			service.Register,
 			build.Register,
 			gitcommit.Register,
 			proxy.Register,

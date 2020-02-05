@@ -32,26 +32,27 @@ func CleanMetadata(meta v1.ObjectMeta) v1.ObjectMeta {
 	return meta
 }
 
-//func RootContainerName(w riov1.Workload) string {
-//	return w.GetMeta().Name
-//}
-//
-//func containerIsValid(container riov1.Container) bool {
-//	return container.Image != "" || container.ImageBuild != nil
-//}
-//
-//// Convert non-named container to named container using name
-//func ToNamedContainers(w riov1.Workload) (result []riov1.NamedContainer) {
-//	if containerIsValid(w.GetSpec().Container) {
-//		result = append(result, riov1.NamedContainer{
-//			Name:      RootContainerName(w),
-//			Container: w.GetSpec().Container,
-//		})
-//	}
-//
-//	result = append(result, w.GetSpec().Sidecars...)
-//	return
-//}
+func RootContainerName(w riov1.Workload) string {
+	return w.GetMeta().Name
+}
+
+func containerIsValid(container riov1.Container) bool {
+	//return container.Image != "" || container.ImageBuild != nil
+	return container.ImageBuild != nil
+}
+
+// todo: cleanup
+// Convert primary container to named container and return all of them
+func ToNamedContainers(w riov1.Workload) (result []riov1.NamedContainer) {
+	//if containerIsValid(w.GetSpec().Container) {
+	//	result = append(result, riov1.NamedContainer{
+	//		Name:      RootContainerName(w),
+	//		Container: w.GetSpec().Container,
+	//	})
+	//}
+	//result = append(result, w.GetSpec().Containers...)
+	return w.GetSpec().Containers
+}
 
 func AutoscaleEnable(w riov1.Workload) bool {
 	return w.GetSpec().Autoscale != nil && w.GetSpec().Autoscale.MinReplicas != nil && w.GetSpec().Autoscale.MaxReplicas != nil && *w.GetSpec().Autoscale.MinReplicas != *w.GetSpec().Autoscale.MaxReplicas

@@ -31,7 +31,7 @@ package pod
 //		volumes = append(volumes, volume)
 //	}
 //
-//	for _, c := range service.Spec.Sidecars {
+//	for _, c := range service.Spec.Containers {
 //		for _, volume := range c.Volumes {
 //			volumes = append(volumes, volume)
 //		}

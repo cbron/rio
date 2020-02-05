@@ -28,7 +28,7 @@ type deploymentWranglerHandler struct {
 	deploymentClient   appsv1controller.DeploymentClient
 	deploymentCache    appsv1controller.DeploymentCache
 	clusterDomainCache adminv1.ClusterDomainCache
-	publicDomainCache  adminv1.PublicDomainCache
+	publicDomainCache  adminv1.PublicDomainCache // todo: necessary ?
 	configmaps         corev1controller.ConfigMapClient
 }
 
@@ -128,13 +128,19 @@ func UpdateConfigForApp(cm *v1.ConfigMap, w riov1.Workload) error {
 		conf.Features["autoscaling"] = f
 	}
 
-	if w.GetSpec().ImageBuild != nil && w.GetSpec().ImageBuild.Repo != "" && arch.IsAmd64() {
-		if conf.Features == nil {
-			conf.Features = map[string]config.FeatureConfig{}
+	// if arch is amd64 and any container has a build repo, turn build on
+	if arch.IsAmd64() {
+		for _, con := range w.GetSpec().Containers {
+			if con.ImageBuild != nil && con.ImageBuild.Repo != "" {
+				if conf.Features == nil {
+					conf.Features = map[string]config.FeatureConfig{}
+				}
+				f := conf.Features["build"]
+				f.Enabled = &t
+				conf.Features["build"] = f
+				break
+			}
 		}
-		f := conf.Features["build"]
-		f.Enabled = &t
-		conf.Features["build"] = f
 	}
 
 	cm, err = config.SetConfig(cm, conf)

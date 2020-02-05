@@ -3,18 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
-
 	webhookv1 "github.com/rancher/gitwatcher/pkg/apis/gitwatcher.cattle.io/v1"
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 	"github.com/rancher/rio/pkg/constants"
 	"github.com/rancher/rio/pkg/constructors"
 	projectv1controller "github.com/rancher/rio/pkg/generated/controllers/admin.rio.cattle.io/v1"
 	riov1controller "github.com/rancher/rio/pkg/generated/controllers/rio.cattle.io/v1"
-	v1 "github.com/rancher/rio/pkg/generated/controllers/rio.cattle.io/v1"
 	"github.com/rancher/rio/pkg/randomtoken"
 	"github.com/rancher/rio/types"
 	corev1controller "github.com/rancher/wrangler-api/pkg/generated/controllers/core/v1"
@@ -27,6 +21,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"path/filepath"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
 )
 
 func Register(ctx context.Context, rContext *types.Context) error {
@@ -34,12 +33,13 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		systemNamespace:    rContext.Namespace,
 		secretsCache:       rContext.Core.Core().V1().Secret().Cache(),
 		clusterDomainCache: rContext.Admin.Admin().V1().ClusterDomain().Cache(),
-		serviceCache:       rContext.Rio.Rio().V1().Service().Cache(),
+		//statefulSetWranglerCache: rContext.Rio.Rio().V1().StatefulSetWrangler().Cache(),
+		deploymentWranglerCache: rContext.Rio.Rio().V1().DeploymentWrangler().Cache(),
 	}
 
-	riov1controller.RegisterServiceGeneratingHandler(
+	riov1controller.RegisterDeploymentWranglerGeneratingHandler(
 		ctx,
-		rContext.Rio.Rio().V1().Service(),
+		rContext.Rio.Rio().V1().DeploymentWrangler(),
 		rContext.Apply.WithCacheTypes(
 			rContext.Build.Tekton().V1alpha1().TaskRun(),
 			rContext.Webhook.Gitwatcher().V1().GitWatcher(),
@@ -47,29 +47,37 @@ func Register(ctx context.Context, rContext *types.Context) error {
 			rContext.Core.Core().V1().Secret(),
 		),
 		"BuildDeployed",
-		"service-build",
-		p.populate,
+		"deploymentwrangler-build",
+		p.dwPopulate,
+		nil)
+
+	riov1controller.RegisterStatefulSetWranglerGeneratingHandler(
+		ctx,
+		rContext.Rio.Rio().V1().StatefulSetWrangler(),
+		rContext.Apply.WithCacheTypes(
+			rContext.Build.Tekton().V1alpha1().TaskRun(),
+			rContext.Webhook.Gitwatcher().V1().GitWatcher(),
+			rContext.Core.Core().V1().ServiceAccount(),
+			rContext.Core.Core().V1().Secret(),
+		),
+		"BuildDeployed",
+		"deploymentwrangler-build",
+		p.sswPopulate,
 		nil)
 
 	relatedresource.Watch(ctx, "webhook-service", p.resolve,
-		rContext.Rio.Rio().V1().Service(), rContext.Rio.Rio().V1().Service())
+		rContext.Rio.Rio().V1().DeploymentWrangler(), rContext.Rio.Rio().V1().DeploymentWrangler())
 
 	return nil
 }
 
 type populator struct {
-	systemNamespace    string
-	customRegistry     string
-	secretsCache       corev1controller.SecretCache
-	serviceCache       v1.ServiceCache
+	systemNamespace         string
+	customRegistry          string
+	secretsCache            corev1controller.SecretCache
+	deploymentWranglerCache riov1controller.DeploymentWranglerCache
+	//statefulSetWranglerCache riov1controller.StatefulSetWranglerCache // appears not needed because DW cache is only used for webhook
 	clusterDomainCache projectv1controller.ClusterDomainCache
-}
-
-func (p *populator) isWebhook(obj runtime.Object) bool {
-	if s, ok := obj.(*riov1.Service); ok {
-		return s.Namespace == p.systemNamespace && s.Name == "webhook"
-	}
-	return false
 }
 
 func (p *populator) resolve(namespace, name string, obj runtime.Object) (result []relatedresource.Key, err error) {
@@ -77,30 +85,49 @@ func (p *populator) resolve(namespace, name string, obj runtime.Object) (result 
 		return nil, nil
 	}
 
-	svcs, err := p.serviceCache.List("", labels.Everything())
+	dws, err := p.deploymentWranglerCache.List("", labels.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	for _, svc := range svcs {
-		if p.isWebhook(svc) {
+	for _, dw := range dws {
+		if p.isWebhook(dw) {
 			continue
 		}
 		result = append(result, relatedresource.Key{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
+			Namespace: dw.Namespace,
+			Name:      dw.Name,
 		})
 	}
 
 	return
 }
 
-func (p *populator) populate(service *riov1.Service, status riov1.ServiceStatus) ([]runtime.Object, riov1.ServiceStatus, error) {
-	imageBuilds := map[string]*riov1.ImageBuildSpec{}
-	if service.Spec.ImageBuild != nil {
-		imageBuilds[service.Name] = service.Spec.ImageBuild
+func (p *populator) isWebhook(obj runtime.Object) bool {
+	if s, ok := obj.(*riov1.DeploymentWrangler); ok {
+		return s.Namespace == p.systemNamespace && s.Name == "webhook"
 	}
-	for _, con := range service.Spec.Sidecars {
+	if s, ok := obj.(*riov1.StatefulSetWrangler); ok {
+		return s.Namespace == p.systemNamespace && s.Name == "webhook"
+	}
+	return false
+}
+
+func (p *populator) dwPopulate(dw *riov1.DeploymentWrangler, status riov1.DeploymentWranglerStatus) ([]runtime.Object, riov1.DeploymentWranglerStatus, error) {
+	obj, newStatus, err := p.populate(dw, status.WorkloadStatus)
+	status.WorkloadStatus = newStatus
+	return obj, status, err
+}
+
+func (p *populator) sswPopulate(dw *riov1.StatefulSetWrangler, status riov1.StatefulSetWranglerStatus) ([]runtime.Object, riov1.StatefulSetWranglerStatus, error) {
+	obj, newStatus, err := p.populate(dw, status.WorkloadStatus)
+	status.WorkloadStatus = newStatus
+	return obj, status, err
+}
+
+func (p *populator) populate(w riov1.Workload, status riov1.WorkloadStatus) ([]runtime.Object, riov1.WorkloadStatus, error) {
+	imageBuilds := map[string]*riov1.ImageBuildSpec{}
+	for _, con := range w.GetSpec().Containers {
 		if con.ImageBuild != nil {
 			imageBuilds[con.Name] = con.ImageBuild
 		}
@@ -124,11 +151,11 @@ func (p *populator) populate(service *riov1.Service, status riov1.ServiceStatus)
 			status.Watch = true
 		}
 
-		if err := p.populateBuild(conName, service.Namespace, build, service, status, p.systemNamespace, os); err != nil {
+		if err := p.populateBuild(conName, w.GetMeta().Namespace, build, w, status, p.systemNamespace, os); err != nil {
 			return nil, status, err
 		}
 
-		if err := p.populateWebhookAndSecrets(build, status, conName, service.Name, service.Namespace, service.Spec.Template, os); err != nil {
+		if err := p.populateWebhookAndSecrets(build, status, conName, w.GetMeta().Name, w.GetMeta().Namespace, w.GetSpec().Template, os); err != nil {
 			return nil, status, err
 		}
 	}
@@ -136,8 +163,8 @@ func (p *populator) populate(service *riov1.Service, status riov1.ServiceStatus)
 	return os.All(), status, nil
 }
 
-func (p populator) populateBuild(buildKey, namespace string, build *riov1.ImageBuildSpec, svc *riov1.Service, status riov1.ServiceStatus, systemNamespace string, os *objectset.ObjectSet) error {
-	if svc.Spec.Template {
+func (p populator) populateBuild(buildKey, namespace string, build *riov1.ImageBuildSpec, w riov1.Workload, status riov1.WorkloadStatus, systemNamespace string, os *objectset.ObjectSet) error {
+	if w.GetSpec().Template {
 		return nil
 	}
 	if build.Revision == "" {
@@ -172,8 +199,9 @@ func (p populator) populateBuild(buildKey, namespace string, build *riov1.ImageB
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				constants.ContainerLabel: buildKey,
-				constants.ServiceLabel:   svc.Name,
-				constants.GitCommitLabel: svc.Annotations[constants.GitCommitLabel],
+				constants.WorkloadName:   w.GetMeta().Name,
+				constants.WorkloadType:   reflect.TypeOf(w).String(),
+				constants.GitCommitLabel: w.GetMeta().Annotations[constants.GitCommitLabel],
 				constants.LogTokenLabel:  status.BuildLogToken,
 			},
 		},
@@ -284,19 +312,20 @@ func (p populator) populateBuild(buildKey, namespace string, build *riov1.ImageB
 	return nil
 }
 
-func (p populator) populateWebhookAndSecrets(build *riov1.ImageBuildSpec, status riov1.ServiceStatus, containerName, svcName, namespace string, template bool, os *objectset.ObjectSet) error {
+func (p populator) populateWebhookAndSecrets(build *riov1.ImageBuildSpec, status riov1.WorkloadStatus, containerName, workloadName, namespace string, template bool, os *objectset.ObjectSet) error {
 	if !status.Watch {
 		return nil
 	}
 
-	webhook, err := p.serviceCache.Get(p.systemNamespace, "webhook")
+	// todo: setup webhook as dw
+	webhook, err := p.deploymentWranglerCache.Get(p.systemNamespace, "webhook")
 	if errors.IsNotFound(err) {
 		webhook = nil
 	} else if err != nil {
 		return err
 	}
 
-	webhookReceiver := webhookv1.NewGitWatcher(namespace, fmt.Sprintf("%s-%s", svcName, containerName), webhookv1.GitWatcher{
+	webhookReceiver := webhookv1.NewGitWatcher(namespace, fmt.Sprintf("%s-%s", workloadName, containerName), webhookv1.GitWatcher{
 		Spec: webhookv1.GitWatcherSpec{
 			RepositoryURL:                  build.Repo,
 			Enabled:                        true,
@@ -313,7 +342,7 @@ func (p populator) populateWebhookAndSecrets(build *riov1.ImageBuildSpec, status
 	})
 
 	webhookReceiver.Annotations = map[string]string{
-		constants.ServiceLabel:   svcName,
+		constants.WorkloadName:   workloadName,
 		constants.ContainerLabel: containerName,
 	}
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	webhookv1 "github.com/rancher/gitwatcher/pkg/apis/gitwatcher.cattle.io/v1"
+	//webhookv1 "github.com/rancher/gitwatcher/pkg/apis/gitwatcher.cattle.io/v1"
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 	"github.com/rancher/rio/pkg/constants"
 	"github.com/rancher/rio/pkg/constructors"
@@ -17,12 +17,12 @@ import (
 	"github.com/rancher/wrangler/pkg/objectset"
 	tektonv1alpha1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	//v1 "k8s.io/api/rbac/v1"
+	//"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	//"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
+	//"k8s.io/apimachinery/pkg/selection"
 )
 
 func Register(ctx context.Context, rContext *types.Context) error {
@@ -30,7 +30,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		systemNamespace: rContext.Namespace,
 		info:            rContext.Admin.Admin().V1().RioInfo().Cache(),
 		pods:            rContext.Core.Core().V1().Pod().Cache(),
-		services:        rContext.Rio.Rio().V1().Service().Cache(),
+		//services:        rContext.Rio.Rio().V1().Service().Cache(),
 	}
 
 	riov1controller.RegisterStackGeneratingHandler(ctx,
@@ -56,7 +56,7 @@ type populator struct {
 	systemNamespace string
 	info            adminv1controller.RioInfoCache
 	pods            corev1controller.PodCache
-	services        riov1controller.ServiceCache
+	//services        riov1controller.ServiceCache
 }
 
 func (p populator) populate(stack *riov1.Stack, status riov1.StackStatus) ([]runtime.Object, riov1.StackStatus, error) {
@@ -70,14 +70,14 @@ func (p populator) populate(stack *riov1.Stack, status riov1.StackStatus) ([]run
 		return nil, status, err
 	}
 
-	webhook, err := p.services.Get(p.systemNamespace, "webhook")
-	if errors.IsNotFound(err) {
-		webhook = nil
-	} else if err != nil {
-		return nil, status, err
-	}
+	//webhook, err := p.services.Get(p.systemNamespace, "webhook")
+	//if errors.IsNotFound(err) {
+	//	webhook = nil
+	//} else if err != nil {
+	//	return nil, status, err
+	//}
 
-	populateWebhookAndSecrets(webhook, stack, os)
+	//populateWebhookAndSecrets(webhook, stack, os)
 	return os.All(), status, nil
 }
 
@@ -121,25 +121,25 @@ func (p populator) populateBuild(stack *riov1.Stack, systemNamespace string, os 
 	}
 	os.Add(sa)
 
-	r, err := labels.NewRequirement("app", selection.Equals, []string{constants.BuildkitdService})
-	if err != nil {
-		return err
-	}
-	selector := labels.NewSelector().Add(*r)
-	pods, err := p.pods.List(p.systemNamespace, selector)
-	if err != nil {
-		return err
-	}
-	var pod corev1.Pod
-	for _, p := range pods {
-		if p.Status.Phase == corev1.PodRunning {
-			pod = *p
-			break
-		}
-	}
+	//r, err := labels.NewRequirement("app", selection.Equals, []string{constants.BuildkitdService})
+	//if err != nil {
+	//	return err
+	//}
+	//selector := labels.NewSelector().Add(*r)
+	//pods, err := p.pods.List(p.systemNamespace, selector)
+	//if err != nil {
+	//	return err
+	//}
+	//var pod corev1.Pod
+	//for _, p := range pods {
+	//	if p.Status.Phase == corev1.PodRunning {
+	//		pod = *p
+	//		break
+	//	}
+	//}
 
-	rbacs := populateRbac(stack, sa.Name, p.systemNamespace, pod.Name)
-	os.Add(rbacs...)
+	//rbacs := populateRbac(stack, sa.Name, p.systemNamespace, pod.Name)
+	//os.Add(rbacs...)
 
 	build := constructors.NewTaskRun(stack.Namespace, trName, tektonv1alpha1.TaskRun{
 		ObjectMeta: metav1.ObjectMeta{
@@ -204,126 +204,127 @@ func (p populator) populateBuild(stack *riov1.Stack, systemNamespace string, os 
 	return nil
 }
 
-func populateRbac(stack *riov1.Stack, saName, systemNamespace, buildKitPodName string) []runtime.Object {
-	role1 := rbac.NewRole(systemNamespace, fmt.Sprintf("%s-%s-stack", stack.Namespace, stack.Name), nil)
-	role1.Rules = []v1.PolicyRule{
-		{
-			APIGroups:     []string{""},
-			Resources:     []string{"pods/portforward"},
-			ResourceNames: []string{buildKitPodName},
-			Verbs:         []string{"create", "get"},
-		},
-		{
-			APIGroups: []string{""},
-			Resources: []string{"pods"},
-			Verbs:     []string{"list", "get"},
-		},
-	}
+//
+//func populateRbac(stack *riov1.Stack, saName, systemNamespace, buildKitPodName string) []runtime.Object {
+//	role1 := rbac.NewRole(systemNamespace, fmt.Sprintf("%s-%s-stack", stack.Namespace, stack.Name), nil)
+//	role1.Rules = []v1.PolicyRule{
+//		{
+//			APIGroups:     []string{""},
+//			Resources:     []string{"pods/portforward"},
+//			ResourceNames: []string{buildKitPodName},
+//			Verbs:         []string{"create", "get"},
+//		},
+//		{
+//			APIGroups: []string{""},
+//			Resources: []string{"pods"},
+//			Verbs:     []string{"list", "get"},
+//		},
+//	}
+//
+//	roleBinding1 := rbac.NewBinding(systemNamespace, fmt.Sprintf("%s-%s-stack", stack.Namespace, stack.Name), nil)
+//	roleBinding1.RoleRef = v1.RoleRef{
+//		Kind:     "Role",
+//		Name:     role1.Name,
+//		APIGroup: "rbac.authorization.k8s.io",
+//	}
+//	roleBinding1.Subjects = []v1.Subject{
+//		{
+//			Kind:      "ServiceAccount",
+//			Namespace: stack.Namespace,
+//			Name:      saName,
+//		},
+//	}
+//
+//	roleBinding2 := rbac.NewBinding(stack.Namespace, fmt.Sprintf("%s-stack", stack.Name), nil)
+//	roleBinding2.RoleRef = v1.RoleRef{
+//		Kind:     "ClusterRole",
+//		Name:     "rio-standard",
+//		APIGroup: "rbac.authorization.k8s.io",
+//	}
+//	roleBinding2.Subjects = []v1.Subject{
+//		{
+//			Kind:      "ServiceAccount",
+//			Namespace: stack.Namespace,
+//			Name:      saName,
+//		},
+//	}
+//
+//	// extra permission from stack
+//	roleExtraPermission := rbac.NewRole(stack.Namespace, fmt.Sprintf("%s-stack-extra-permissions", stack.Name), nil)
+//	for _, perm := range stack.Spec.Permissions {
+//		if perm.Role != "" {
+//			continue
+//		}
+//		policyRule, ok := rbac.PermToPolicyRule(perm)
+//		if ok {
+//			roleExtraPermission.Rules = append(roleExtraPermission.Rules, policyRule)
+//		}
+//	}
+//	roleBinding3 := rbac.NewBinding(stack.Namespace, fmt.Sprintf("%s-stack-extra-permissions", stack.Name), nil)
+//	roleBinding3.RoleRef = v1.RoleRef{
+//		Kind:     "Role",
+//		Name:     roleExtraPermission.Name,
+//		APIGroup: "rbac.authorization.k8s.io",
+//	}
+//	roleBinding3.Subjects = []v1.Subject{
+//		{
+//			Kind:      "ServiceAccount",
+//			Namespace: stack.Namespace,
+//			Name:      saName,
+//		},
+//	}
+//	objects := []runtime.Object{
+//		role1,
+//		roleExtraPermission,
+//		roleBinding1,
+//		roleBinding2,
+//		roleBinding3,
+//	}
+//
+//	for _, role := range stack.Spec.Permissions {
+//		if role.Role == "" {
+//			continue
+//		}
+//		roleBinding := rbac.NewBinding(stack.Namespace, name.SafeConcatName("rio-stack", stack.Name, role.Role), nil)
+//		roleBinding.Subjects = []v1.Subject{
+//			{
+//				Kind:      "ServiceAccount",
+//				Namespace: stack.Namespace,
+//				Name:      saName,
+//			},
+//		}
+//		roleBinding.RoleRef = v1.RoleRef{
+//			Name:     role.Role,
+//			Kind:     "Role",
+//			APIGroup: "rbac.authorization.k8s.io",
+//		}
+//		objects = append(objects, roleBinding)
+//	}
+//
+//	return objects
+//}
 
-	roleBinding1 := rbac.NewBinding(systemNamespace, fmt.Sprintf("%s-%s-stack", stack.Namespace, stack.Name), nil)
-	roleBinding1.RoleRef = v1.RoleRef{
-		Kind:     "Role",
-		Name:     role1.Name,
-		APIGroup: "rbac.authorization.k8s.io",
-	}
-	roleBinding1.Subjects = []v1.Subject{
-		{
-			Kind:      "ServiceAccount",
-			Namespace: stack.Namespace,
-			Name:      saName,
-		},
-	}
-
-	roleBinding2 := rbac.NewBinding(stack.Namespace, fmt.Sprintf("%s-stack", stack.Name), nil)
-	roleBinding2.RoleRef = v1.RoleRef{
-		Kind:     "ClusterRole",
-		Name:     "rio-standard",
-		APIGroup: "rbac.authorization.k8s.io",
-	}
-	roleBinding2.Subjects = []v1.Subject{
-		{
-			Kind:      "ServiceAccount",
-			Namespace: stack.Namespace,
-			Name:      saName,
-		},
-	}
-
-	// extra permission from stack
-	roleExtraPermission := rbac.NewRole(stack.Namespace, fmt.Sprintf("%s-stack-extra-permissions", stack.Name), nil)
-	for _, perm := range stack.Spec.Permissions {
-		if perm.Role != "" {
-			continue
-		}
-		policyRule, ok := rbac.PermToPolicyRule(perm)
-		if ok {
-			roleExtraPermission.Rules = append(roleExtraPermission.Rules, policyRule)
-		}
-	}
-	roleBinding3 := rbac.NewBinding(stack.Namespace, fmt.Sprintf("%s-stack-extra-permissions", stack.Name), nil)
-	roleBinding3.RoleRef = v1.RoleRef{
-		Kind:     "Role",
-		Name:     roleExtraPermission.Name,
-		APIGroup: "rbac.authorization.k8s.io",
-	}
-	roleBinding3.Subjects = []v1.Subject{
-		{
-			Kind:      "ServiceAccount",
-			Namespace: stack.Namespace,
-			Name:      saName,
-		},
-	}
-	objects := []runtime.Object{
-		role1,
-		roleExtraPermission,
-		roleBinding1,
-		roleBinding2,
-		roleBinding3,
-	}
-
-	for _, role := range stack.Spec.Permissions {
-		if role.Role == "" {
-			continue
-		}
-		roleBinding := rbac.NewBinding(stack.Namespace, name.SafeConcatName("rio-stack", stack.Name, role.Role), nil)
-		roleBinding.Subjects = []v1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Namespace: stack.Namespace,
-				Name:      saName,
-			},
-		}
-		roleBinding.RoleRef = v1.RoleRef{
-			Name:     role.Role,
-			Kind:     "Role",
-			APIGroup: "rbac.authorization.k8s.io",
-		}
-		objects = append(objects, roleBinding)
-	}
-
-	return objects
-}
-
-func populateWebhookAndSecrets(webhookService *riov1.Service, stack *riov1.Stack, os *objectset.ObjectSet) {
-	webhookReceiver := webhookv1.NewGitWatcher(stack.Namespace, stack.Name+"-stack", webhookv1.GitWatcher{
-		Spec: webhookv1.GitWatcherSpec{
-			RepositoryURL:                  stack.Spec.Build.Repo,
-			Enabled:                        true,
-			Push:                           !stack.Spec.Build.Tag,
-			Tag:                            stack.Spec.Build.Tag,
-			TagIncludeRegexp:               stack.Spec.Build.TagIncludeRegexp,
-			TagExcludeRegexp:               stack.Spec.Build.TagExcludeRegexp,
-			Branch:                         stack.Spec.Build.Branch,
-			RepositoryCredentialSecretName: stack.Spec.Build.CloneSecretName,
-			GithubWebhookToken:             stack.Spec.Build.WebhookSecretName,
-		},
-	})
-	webhookReceiver.Annotations = map[string]string{
-		constants.StackLabel: stack.Name,
-	}
-
-	if webhookService != nil && len(webhookService.Status.Endpoints) > 0 {
-		webhookReceiver.Spec.ReceiverURL = webhookService.Status.Endpoints[0]
-	}
-
-	os.Add(webhookReceiver)
-}
+//func populateWebhookAndSecrets(webhookService *riov1.Service, stack *riov1.Stack, os *objectset.ObjectSet) {
+//	webhookReceiver := webhookv1.NewGitWatcher(stack.Namespace, stack.Name+"-stack", webhookv1.GitWatcher{
+//		Spec: webhookv1.GitWatcherSpec{
+//			RepositoryURL:                  stack.Spec.Build.Repo,
+//			Enabled:                        true,
+//			Push:                           !stack.Spec.Build.Tag,
+//			Tag:                            stack.Spec.Build.Tag,
+//			TagIncludeRegexp:               stack.Spec.Build.TagIncludeRegexp,
+//			TagExcludeRegexp:               stack.Spec.Build.TagExcludeRegexp,
+//			Branch:                         stack.Spec.Build.Branch,
+//			RepositoryCredentialSecretName: stack.Spec.Build.CloneSecretName,
+//			GithubWebhookToken:             stack.Spec.Build.WebhookSecretName,
+//		},
+//	})
+//	webhookReceiver.Annotations = map[string]string{
+//		constants.StackLabel: stack.Name,
+//	}
+//
+//	if webhookService != nil && len(webhookService.Status.Endpoints) > 0 {
+//		webhookReceiver.Spec.ReceiverURL = webhookService.Status.Endpoints[0]
+//	}
+//
+//	os.Add(webhookReceiver)
+//}

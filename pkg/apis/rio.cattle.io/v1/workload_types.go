@@ -18,7 +18,7 @@ type Workload interface {
 
 // ServiceSpec represents spec for Service
 type WorkloadSpec struct {
-	//PodConfig
+	PodConfig // todo: can we get rid of podConfig and just do containers ?
 
 	// Version of this service
 	Version string `json:"version,omitempty"`
@@ -66,10 +66,6 @@ type WorkloadSpec struct {
 	// at any time during the update is at most 130% of desired pods.
 	// +optional
 	//MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
-
-	Ports []ContainerPort `json:"ports,omitempty" mapper:"ports,alias=port"`
-
-	ImageBuild *ImageBuildSpec `json:"build,omitempty"`
 
 	// Autoscale the replicas based on the amount of traffic received by this service
 	Autoscale *AutoscaleConfig `json:"autoscale,omitempty"`
@@ -122,21 +118,21 @@ type WorkloadSpec struct {
 //	Privileged *bool `json:"privileged,omitempty"`
 //}
 
-//type NamedContainer struct {
-//	// The name of the container
-//	Name string `json:"name,omitempty"`
-//
-//	// List of initialization containers belonging to the pod.
-//	// Init containers are executed in order prior to containers being started.
-//	// If any init container fails, the pod is considered to have failed and is handled according to its restartPolicy.
-//	// The name for an init container or normal container must be unique among all containers.
-//	// Init containers may not have Lifecycle actions, Readiness probes, or Liveness probes.
-//	// The resourceRequirements of an init container are taken into account during scheduling by finding the highest request/limit for each resource type, and then using the max of of that value or the sum of the normal containers.
-//	// Limits are applied to init containers in a similar fashion. Init containers cannot currently be added or removed. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
-//	Init bool `json:"init,omitempty"`
-//
-//	Container
-//}
+type NamedContainer struct {
+	//	// The name of the container
+	Name string `json:"name,omitempty"`
+	//
+	//	// List of initialization containers belonging to the pod.
+	//	// Init containers are executed in order prior to containers being started.
+	//	// If any init container fails, the pod is considered to have failed and is handled according to its restartPolicy.
+	//	// The name for an init container or normal container must be unique among all containers.
+	//	// Init containers may not have Lifecycle actions, Readiness probes, or Liveness probes.
+	//	// The resourceRequirements of an init container are taken into account during scheduling by finding the highest request/limit for each resource type, and then using the max of of that value or the sum of the normal containers.
+	//	// Limits are applied to init containers in a similar fashion. Init containers cannot currently be added or removed. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+	//	Init bool `json:"init,omitempty"`
+	//
+	Container
+}
 
 type AutoscaleConfig struct {
 	// ContainerConcurrency specifies the maximum allowed in-flight (concurrent) requests per container of the Revision. Defaults to 0 which means unlimited concurrency.
@@ -161,73 +157,72 @@ type RolloutConfig struct {
 	Pause bool `json:"pause,omitempty"`
 }
 
-//
-//type Container struct {
-//	// Docker image name. More info: https://kubernetes.io/docs/concepts/containers/images This field is optional to allow higher level config management to default or override container images in workload controllers like Deployments and StatefulSets.
-//	Image string `json:"image,omitempty"`
-//
-//	// ImageBuild specifies how to build this image
-//	ImageBuild *ImageBuildSpec `json:"build,omitempty"`
-//
-//	// Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided.
-//	// Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged.
-//	// The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not.
-//	// Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
-//	//Command []string `json:"command,omitempty" mapper:"shlex"`
-//
-//	// Arguments to the entrypoint. The docker image's CMD is used if this is not provided.
-//	// Variable references $(VAR_NAME) are expanded using the container's environment.
-//	// If a variable cannot be resolved, the reference in the input string will be unchanged.
-//	// The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not.
-//	// Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
-//	//Args []string `json:"args,omitempty" mapper:"shlex,alias=arg"`
-//
-//	// Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image. Cannot be updated.
-//	//WorkingDir string `json:"workingDir,omitempty"`
-//
-//	// List of ports to expose from the container. Exposing a port here gives the system additional information about the network connections a container uses, but is primarily informational. Not specifying a port here DOES NOT prevent that port from being exposed.
-//	// Any port which is listening on the default "0.0.0.0" address inside a container will be accessible from the network. Cannot be updated.
-//	Ports []ContainerPort `json:"ports,omitempty" mapper:"ports,alias=port"`
-//
-//	// List of environment variables to set in the container. Cannot be updated.
-//	//Env []EnvVar `json:"env,omitempty" mapper:"env,envmap=sep==,alias=environment"`
-//
-//	// CPU, in milliCPU (e.g. 500 = .5 CPU cores)
-//	//CPUMillis *int64 `json:"cpuMillis,omitempty" mapper:"quantity,alias=cpu|cpus"`
-//
-//	// Memory, in bytes
-//	//MemoryBytes *int64 `json:"memoryBytes,omitempty" mapper:"quantity,alias=mem|memory"`
-//
-//	// Secrets Mounts
-//	Secrets []DataMount `json:"secrets,omitempty" mapper:"secrets,envmap=sep=:,alias=secret"`
-//
-//	// Configmaps Mounts
-//	Configs []DataMount `json:"configs,omitempty" mapper:"configs,envmap=sep=:,alias=config"`
-//
-//	// Periodic probe of container liveness. Container will be restarted if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
-//	//LivenessProbe *v1.Probe `json:"livenessProbe,omitempty" mapper:"alias=liveness"`
-//
-//	// Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
-//	//ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty" mapper:"alias=readiness"`
-//
-//	// Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if tag is does not start with v[0-9] or [0-9], or IfNotPresent otherwise. Cannot be updated. More info: https://kubernetes.io/docs/concepts/containers/images#updating-images
-//	//ImagePullPolicy v1.PullPolicy `json:"imagePullPolicy,omitempty" mapper:"enum=Always|IfNotPresent|Never,alias=pullPolicy"`
-//
-//	// Whether this container should allocate a buffer for stdin in the container runtime. If this is not set, reads from stdin in the container will always result in EOF. Default is false.
-//	//Stdin bool `json:"stdin,omitempty" mapper:"alias=stdinOpen"`
-//
-//	// Whether the container runtime should close the stdin channel after it has been opened by a single attach. When stdin is true the stdin stream will remain open across multiple attach sessions.
-//	// If stdinOnce is set to true, stdin is opened on container start, is empty until the first client attaches to stdin, and then remains open and accepts data until the client disconnects, at which time stdin is closed and remains closed until the container is restarted. If this flag is false, a container processes that reads from stdin will never receive an EOF. Default is false
-//	//StdinOnce bool `json:"stdinOnce,omitempty"`
-//
-//	// Whether this container should allocate a TTY for itself, also requires 'stdin' to be true. Default is false.
-//	//TTY bool `json:"tty,omitempty"`
-//
-//	// Pod volumes to mount into the container's filesystem
-//	//Volumes []Volume `json:"volumes,omitempty" mapper:"volumes,envmap=sep=:,alias=volume"`
-//
-//	//*ContainerSecurityContext
-//}
+type Container struct {
+	//	// Docker image name. More info: https://kubernetes.io/docs/concepts/containers/images This field is optional to allow higher level config management to default or override container images in workload controllers like Deployments and StatefulSets.
+	//	Image string `json:"image,omitempty"`
+	//
+	//	// ImageBuild specifies how to build this image
+	ImageBuild *ImageBuildSpec `json:"build,omitempty"`
+	//
+	//	// Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided.
+	//	// Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged.
+	//	// The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not.
+	//	// Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
+	//	//Command []string `json:"command,omitempty" mapper:"shlex"`
+	//
+	//	// Arguments to the entrypoint. The docker image's CMD is used if this is not provided.
+	//	// Variable references $(VAR_NAME) are expanded using the container's environment.
+	//	// If a variable cannot be resolved, the reference in the input string will be unchanged.
+	//	// The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not.
+	//	// Cannot be updated. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
+	//	//Args []string `json:"args,omitempty" mapper:"shlex,alias=arg"`
+	//
+	//	// Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image. Cannot be updated.
+	//	//WorkingDir string `json:"workingDir,omitempty"`
+	//
+	//	// List of ports to expose from the container. Exposing a port here gives the system additional information about the network connections a container uses, but is primarily informational. Not specifying a port here DOES NOT prevent that port from being exposed.
+	//	// Any port which is listening on the default "0.0.0.0" address inside a container will be accessible from the network. Cannot be updated.
+	Ports []ContainerPort `json:"ports,omitempty" mapper:"ports,alias=port"`
+	//
+	//	// List of environment variables to set in the container. Cannot be updated.
+	//	//Env []EnvVar `json:"env,omitempty" mapper:"env,envmap=sep==,alias=environment"`
+	//
+	//	// CPU, in milliCPU (e.g. 500 = .5 CPU cores)
+	//	//CPUMillis *int64 `json:"cpuMillis,omitempty" mapper:"quantity,alias=cpu|cpus"`
+	//
+	//	// Memory, in bytes
+	//	//MemoryBytes *int64 `json:"memoryBytes,omitempty" mapper:"quantity,alias=mem|memory"`
+	//
+	//	// Secrets Mounts
+	//	Secrets []DataMount `json:"secrets,omitempty" mapper:"secrets,envmap=sep=:,alias=secret"`
+	//
+	//	// Configmaps Mounts
+	//	Configs []DataMount `json:"configs,omitempty" mapper:"configs,envmap=sep=:,alias=config"`
+	//
+	//	// Periodic probe of container liveness. Container will be restarted if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	//	//LivenessProbe *v1.Probe `json:"livenessProbe,omitempty" mapper:"alias=liveness"`
+	//
+	//	// Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	//	//ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty" mapper:"alias=readiness"`
+	//
+	//	// Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if tag is does not start with v[0-9] or [0-9], or IfNotPresent otherwise. Cannot be updated. More info: https://kubernetes.io/docs/concepts/containers/images#updating-images
+	//	//ImagePullPolicy v1.PullPolicy `json:"imagePullPolicy,omitempty" mapper:"enum=Always|IfNotPresent|Never,alias=pullPolicy"`
+	//
+	//	// Whether this container should allocate a buffer for stdin in the container runtime. If this is not set, reads from stdin in the container will always result in EOF. Default is false.
+	//	//Stdin bool `json:"stdin,omitempty" mapper:"alias=stdinOpen"`
+	//
+	//	// Whether the container runtime should close the stdin channel after it has been opened by a single attach. When stdin is true the stdin stream will remain open across multiple attach sessions.
+	//	// If stdinOnce is set to true, stdin is opened on container start, is empty until the first client attaches to stdin, and then remains open and accepts data until the client disconnects, at which time stdin is closed and remains closed until the container is restarted. If this flag is false, a container processes that reads from stdin will never receive an EOF. Default is false
+	//	//StdinOnce bool `json:"stdinOnce,omitempty"`
+	//
+	//	// Whether this container should allocate a TTY for itself, also requires 'stdin' to be true. Default is false.
+	//	//TTY bool `json:"tty,omitempty"`
+	//
+	//	// Pod volumes to mount into the container's filesystem
+	//	//Volumes []Volume `json:"volumes,omitempty" mapper:"volumes,envmap=sep=:,alias=volume"`
+	//
+	//	//*ContainerSecurityContext
+}
 
 //type Volume struct {
 //	// Name is the name of the volume. If multiple Volumes in the same pod share the same name they
@@ -289,32 +284,31 @@ type RolloutConfig struct {
 //	Options []PodDNSConfigOption `json:"options,omitempty" mapper:"dnsOptions"`
 //}
 
-//type PodConfig struct {
-//	// List of containers belonging to the pod. Containers cannot currently be added or removed. There must be at least one container in a Pod. Cannot be updated.
-//	Sidecars []NamedContainer `json:"containers,omitempty"`
-//	//
-//	//	// Specifies the hostname of the Pod If not specified, the pod's hostname will be set to a system-defined value.
-//	//	Hostname string `json:"hostname,omitempty"`
-//	//
-//	//	// HostAliases is an optional list of hosts and IPs that will be injected into the pod's hosts file if specified. This is only valid for non-hostNetwork pods.
-//	//	HostAliases []v1.HostAlias `json:"hostAliases,omitempty" mapper:"hosts,envmap=sep==,alias=hosts"`
-//	//
-//	//	// Host networking requested for this pod. Use the host's network namespace. If this option is set, the ports that will be used must be specified. Default to false.
-//	//	HostNetwork bool `json:"hostNetwork,omitempty" mapper:"hostNetwork"`
-//	//
-//	//	// Image pull secret
-//	//	ImagePullSecrets []string `json:"imagePullSecrets,omitempty" mapper:"alias=pullSecrets"`
-//	//
-//	//	// Volumes to create per replica
-//	//	VolumeTemplates []VolumeTemplate `json:"volumeTemplates,omitempty"`
-//	//
-//	//	// DNS settings for this Pod
-//	//	DNS *DNS `json:"dns,omitempty"`
-//	//
-//	//	*v1.Affinity `json:",inline"`
-//	//
-//	Container
-//}
+type PodConfig struct {
+	// List of containers belonging to the pod. Containers cannot currently be added or removed. There must be at least one container in a Pod. Cannot be updated.
+	Containers []NamedContainer `json:"containers,omitempty"`
+	//
+	//	// Specifies the hostname of the Pod If not specified, the pod's hostname will be set to a system-defined value.
+	//	Hostname string `json:"hostname,omitempty"`
+	//
+	//	// HostAliases is an optional list of hosts and IPs that will be injected into the pod's hosts file if specified. This is only valid for non-hostNetwork pods.
+	//	HostAliases []v1.HostAlias `json:"hostAliases,omitempty" mapper:"hosts,envmap=sep==,alias=hosts"`
+	//
+	//	// Host networking requested for this pod. Use the host's network namespace. If this option is set, the ports that will be used must be specified. Default to false.
+	//	HostNetwork bool `json:"hostNetwork,omitempty" mapper:"hostNetwork"`
+	//
+	//	// Image pull secret
+	//	ImagePullSecrets []string `json:"imagePullSecrets,omitempty" mapper:"alias=pullSecrets"`
+	//
+	//	// Volumes to create per replica
+	//	VolumeTemplates []VolumeTemplate `json:"volumeTemplates,omitempty"`
+	//
+	//	// DNS settings for this Pod
+	//	DNS *DNS `json:"dns,omitempty"`
+	//
+	//	*v1.Affinity `json:",inline"`
+	//
+}
 
 type Protocol string
 

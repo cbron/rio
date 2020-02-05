@@ -2,6 +2,7 @@ package serviceports
 
 import (
 	"fmt"
+	"github.com/rancher/rio/pkg/riofile/stringers"
 	"strings"
 
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
@@ -22,35 +23,35 @@ func Protocol(proto riov1.Protocol) (protocol v1.Protocol) {
 	return
 }
 
-//func ContainerPorts(w riov1.Workload) []riov1.ContainerPort {
-//	var (
-//		ports   []riov1.ContainerPort
-//		portMap = map[string]bool{}
-//	)
-//
-//	for _, container := range services.ToNamedContainers(w) {
-//		for _, port := range container.Ports {
-//			port = stringers.NormalizeContainerPort(port)
-//
-//			if port.Port == 0 {
-//				continue
-//			}
-//
-//			key := fmt.Sprintf("%v/%v", port.Port, port.Protocol)
-//			if portMap[key] {
-//				continue
-//			}
-//			portMap[key] = true
-//
-//			ports = append(ports, port)
-//		}
-//	}
-//
-//	return ports
-//}
+func ContainerPorts(w riov1.Workload) []riov1.ContainerPort {
+	var (
+		ports   []riov1.ContainerPort
+		portMap = map[string]bool{}
+	)
+
+	for _, container := range w.GetSpec().Containers {
+		for _, port := range container.Ports {
+			port = stringers.NormalizeContainerPort(port)
+
+			if port.Port == 0 {
+				continue
+			}
+
+			key := fmt.Sprintf("%v/%v", port.Port, port.Protocol)
+			if portMap[key] {
+				continue
+			}
+			portMap[key] = true
+
+			ports = append(ports, port)
+		}
+	}
+
+	return ports
+}
 
 func ServiceNamedPorts(w riov1.Workload) (servicePorts []v1.ServicePort) {
-	for _, port := range w.GetSpec().Ports {
+	for _, port := range ContainerPorts(w) {
 		servicePort := v1.ServicePort{
 			Name:     port.Name,
 			Port:     port.Port,

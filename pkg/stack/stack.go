@@ -139,7 +139,7 @@ func (s *Stack) WithAnswer(answer map[string]string) {
 //	for _, obj := range objs {
 //		if svc, ok := obj.(*riov1.Service); ok {
 //			var keys []ContainerBuildKey
-//			for _, con := range svc.Spec.Sidecars {
+//			for _, con := range svc.Spec.Containers {
 //				keys = append(keys, ContainerBuildKey{
 //					Service:   svc.Name,
 //					Container: con.Name,

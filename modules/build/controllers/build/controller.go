@@ -3,49 +3,74 @@ package build
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	webhookv1controller "github.com/rancher/gitwatcher/pkg/generated/controllers/gitwatcher.cattle.io/v1"
 	"github.com/rancher/rio/modules/build/controllers/service"
 	v1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 	"github.com/rancher/rio/pkg/constants"
 	riov1controller "github.com/rancher/rio/pkg/generated/controllers/rio.cattle.io/v1"
-	"github.com/rancher/rio/pkg/services"
 	"github.com/rancher/rio/types"
+	appsv1controller "github.com/rancher/wrangler-api/pkg/generated/controllers/apps/v1"
 	"github.com/rancher/wrangler/pkg/condition"
 	tektonv1alpha1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 )
 
+type handler struct {
+	systemNamespace  string
+	deploymentClient appsv1controller.DeploymentClient
+	deploymentCache  appsv1controller.DeploymentCache
+	dwClient         riov1controller.DeploymentWranglerController
+	sswClient        riov1controller.StatefulSetWranglerController
+	stacks           riov1controller.StackController
+	gitcommits       webhookv1controller.GitCommitController
+}
+
 func Register(ctx context.Context, rContext *types.Context) error {
 	h := handler{
-		systemNamespace: rContext.Namespace,
-		services:        rContext.Rio.Rio().V1().Service(),
-		stacks:          rContext.Rio.Rio().V1().Stack(),
-		gitcommits:      rContext.Webhook.Gitwatcher().V1().GitCommit(),
+		systemNamespace:  rContext.Namespace,
+		deploymentClient: rContext.Apps.Apps().V1().Deployment(),
+		deploymentCache:  rContext.Apps.Apps().V1().Deployment().Cache(),
+		dwClient:         rContext.Rio.Rio().V1().DeploymentWrangler(),
+		sswClient:        rContext.Rio.Rio().V1().StatefulSetWrangler(),
+		stacks:           rContext.Rio.Rio().V1().Stack(),
+		gitcommits:       rContext.Webhook.Gitwatcher().V1().GitCommit(),
 	}
 
-	rContext.Build.Tekton().V1alpha1().TaskRun().OnChange(ctx, "build-service-update", h.updateService)
+	rContext.Build.Tekton().V1alpha1().TaskRun().OnChange(ctx, "build-service-update", h.updateWorkload)
 	return nil
 }
 
-type handler struct {
-	systemNamespace string
-	services        riov1controller.ServiceController
-	stacks          riov1controller.StackController
-	gitcommits      webhookv1controller.GitCommitController
-}
-
-func (h handler) updateService(key string, build *tektonv1alpha1.TaskRun) (*tektonv1alpha1.TaskRun, error) {
+func (h handler) updateWorkload(key string, build *tektonv1alpha1.TaskRun) (*tektonv1alpha1.TaskRun, error) {
 	if build == nil {
 		return build, nil
 	}
 
-	namespace, svcName, conName := build.Namespace, build.Labels[constants.ServiceLabel], build.Labels[constants.ContainerLabel]
-	svc, err := h.services.Cache().Get(namespace, svcName)
-	if err != nil {
+	var workload v1.Workload
+	var dw *v1.DeploymentWrangler
+	var ssw *v1.StatefulSetWrangler
+
+	namespace, wName, wType, conName := build.Namespace, build.Labels[constants.WorkloadName], build.Labels[constants.WorkloadType], build.Labels[constants.ContainerLabel]
+	if wType == constants.DeploymentWranglerType {
+		var err error
+		dw, err = h.dwClient.Cache().Get(namespace, wName)
+		if err != nil {
+			return build, nil
+		}
+		workload = dw
+	} else if wType == constants.StatefulSetWranglerType {
+		var err error
+		ssw, err = h.sswClient.Cache().Get(namespace, wName)
+		if err != nil {
+			return build, nil
+		}
+		workload = ssw
+	}
+	if workload == nil {
 		return build, nil
 	}
 
-	if svc.Spec.Template {
+	if workload.GetSpec().Template {
 		return build, nil
 	}
 
@@ -71,39 +96,62 @@ func (h handler) updateService(key string, build *tektonv1alpha1.TaskRun) (*tekt
 	}
 
 	if condition.Cond("Succeeded").IsTrue(build) {
-		if conName == services.RootContainerName(svc) {
-			imageName := service.PullImageName(namespace, conName, svc.Spec.ImageBuild)
-			if svc.Spec.Image != imageName {
-				deepCopy := svc.DeepCopy()
-				v1.ServiceConditionImageReady.SetError(deepCopy, "", nil)
-				deepCopy.Spec.Image = service.PullImageName(namespace, conName, svc.Spec.ImageBuild)
-				if _, err := h.services.Update(deepCopy); err != nil {
+		imageName := ""
+		for _, con := range workload.GetSpec().Containers {
+			if con.Name == conName {
+				imageName = service.PullImageName(namespace, conName, con.ImageBuild)
+				break
+			}
+		}
+
+		if wType == constants.DeploymentWranglerType {
+			// First handle empty imageName case
+			if imageName == "" {
+				deepCopy := dw.DeepCopy()
+				v1.ServiceConditionImageReady.SetError(deepCopy, "", fmt.Errorf("container name \"%s\" not found on deployment \"%s\"", conName, wName))
+				_, err := h.dwClient.UpdateStatus(deepCopy)
+				if err != nil {
 					return build, err
 				}
 			}
-		} else {
-			for i, con := range svc.Spec.Sidecars {
+			// If container found, update deployment
+			deploy, err := h.deploymentCache.Get(namespace, wName)
+			if err != nil {
+				return build, err
+			}
+			for _, con := range deploy.Spec.Template.Spec.Containers {
 				if con.Name == conName {
-					imageName := service.PullImageName(namespace, conName, con.ImageBuild)
-					if con.Image != imageName {
-						deepCopy := svc.DeepCopy()
-						v1.ServiceConditionImageReady.SetError(deepCopy, "", nil)
-						deepCopy.Spec.Sidecars[i].Image = service.PullImageName(namespace, conName, con.ImageBuild)
-						if _, err := h.services.Update(deepCopy); err != nil {
-							return build, err
-						}
+					deepCopy := deploy.DeepCopy()
+					v1.ServiceConditionImageReady.SetError(deepCopy, "", nil)
+					con.Image = imageName
+					if _, err := h.deploymentClient.Update(deepCopy); err != nil {
+						return build, err
 					}
 				}
 			}
+		} else if wType == constants.StatefulSetWranglerType {
+			// todo: copy DW logic into here
 		}
+
 	} else if condition.Cond("Succeeded").IsFalse(build) {
 		reason := condition.Cond("Succeeded").GetReason(build)
 		message := condition.Cond("Succeeded").GetMessage(build)
-
-		deepCopy := svc.DeepCopy()
-		v1.ServiceConditionImageReady.SetError(deepCopy, reason, errors.New(message))
-		_, err := h.services.UpdateStatus(deepCopy)
-		return build, err
+		if wType == constants.DeploymentWranglerType {
+			deepCopy := dw.DeepCopy()
+			v1.ServiceConditionImageReady.SetError(deepCopy, reason, errors.New(message))
+			_, err := h.dwClient.UpdateStatus(deepCopy)
+			if err != nil {
+				return build, err
+			}
+		} else if wType == constants.StatefulSetWranglerType {
+			deepCopy := ssw.DeepCopy()
+			v1.ServiceConditionImageReady.SetError(deepCopy, reason, errors.New(message))
+			_, err := h.sswClient.UpdateStatus(deepCopy)
+			if err != nil {
+				return build, err
+			}
+		}
+		return build, nil
 	}
 
 	return build, nil
