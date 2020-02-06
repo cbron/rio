@@ -21,30 +21,41 @@ import (
 
 func Register(ctx context.Context, rContext *types.Context) error {
 	h := &handler{
-		services:   rContext.Rio.Rio().V1().Service(),
+		dw:         rContext.Rio.Rio().V1().DeploymentWrangler(),
 		gitcommits: rContext.Webhook.Gitwatcher().V1().GitCommit().Cache(),
 	}
 
-	riov1controller.RegisterServiceGeneratingHandler(ctx,
-		rContext.Rio.Rio().V1().Service(),
+	riov1controller.RegisterDeploymentWranglerGeneratingHandler(ctx,
+		rContext.Rio.Rio().V1().DeploymentWrangler(),
 		rContext.Apply.
-			WithCacheTypes(rContext.Rio.Rio().V1().Service()).
+			WithCacheTypes(rContext.Rio.Rio().V1().DeploymentWrangler()).
 			WithNoDelete(),
 		"",
 		"template",
-		h.generate,
+		h.dwGenerate,
 		nil)
+
+	// todo: statefulset
 
 	return nil
 }
 
 type handler struct {
 	gitcommits webhookv1controller.GitCommitCache
-	services   riov1controller.ServiceController
+	dw         riov1controller.DeploymentWranglerController
 }
 
-func (h *handler) generate(service *riov1.Service, status riov1.ServiceStatus) ([]runtime.Object, riov1.ServiceStatus, error) {
-	skip, err := h.skip(service)
+func (h *handler) dwGenerate(dw *riov1.DeploymentWrangler, status riov1.DeploymentWranglerStatus) ([]runtime.Object, riov1.DeploymentWranglerStatus, error) {
+	objs, newStatus, err := h.generate(dw, status.WorkloadStatus)
+	status = riov1.DeploymentWranglerStatus{
+		WorkloadStatus: newStatus,
+	}
+	return objs, status, err
+}
+
+// generate takes a workload change and if its a template that needs to generates a new workload it creates it
+func (h *handler) generate(w riov1.Workload, status riov1.WorkloadStatus) ([]runtime.Object, riov1.WorkloadStatus, error) {
+	skip, err := h.skip(w)
 	if err != nil {
 		return nil, status, err
 	}
@@ -52,25 +63,25 @@ func (h *handler) generate(service *riov1.Service, status riov1.ServiceStatus) (
 		return nil, status, generic.ErrSkip
 	}
 
-	if err := h.cleanup(service); err != nil {
+	if err := h.cleanup(w); err != nil {
 		return nil, status, err
 	}
 
 	name := status.ShouldGenerate
-	app, _ := services.AppAndVersion(service)
+	app, _ := services.AppAndVersion(w)
 
-	spec := service.Spec.DeepCopy()
+	spec := w.GetSpec().DeepCopy()
 	spec.Template = false
 	spec.App = app
 	spec.Version = ""
-	setImageBuild(service, status, spec)
+	setImageBuild(w, status, spec)
 	setPullSecrets(spec)
 
-	generatedFromPR, err := h.generatedFromPR(service)
+	generatedFromPR, err := h.generatedFromPR(w)
 	if err != nil {
 		return nil, status, err
 	}
-	if !service.Spec.StageOnly && !generatedFromPR {
+	if !w.GetSpec().StageOnly && !generatedFromPR {
 		svcs, err := h.services.Cache().GetByIndex(indexes.ServiceByApp, fmt.Sprintf("%s/%s", service.Namespace, app))
 		if err != nil {
 			return nil, status, err
@@ -109,12 +120,12 @@ func (h *handler) generate(service *riov1.Service, status riov1.ServiceStatus) (
 	}, status, nil
 }
 
-func (h *handler) generatedFromPR(service *riov1.Service) (bool, error) {
-	if len(service.Status.GitCommits) == 0 {
+func (h *handler) generatedFromPR(w riov1.Workload) (bool, error) {
+	if len(w.GetStatus().GitCommits) == 0 {
 		return false, nil
 	}
 
-	gc, err := h.gitcommits.Get(service.Namespace, last(service.Status.GitCommits))
+	gc, err := h.gitcommits.Get(w.GetMeta().Namespace, last(w.GetStatus().GitCommits))
 	if err != nil {
 		return false, err
 	}
@@ -122,9 +133,10 @@ func (h *handler) generatedFromPR(service *riov1.Service) (bool, error) {
 	return gc.Spec.PR != "", nil
 }
 
-func (h *handler) cleanup(service *riov1.Service) error {
-	for shouldDelete := range service.Status.ShouldClean {
-		if err := h.services.Delete(service.Namespace, shouldDelete, &metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+func (h *handler) cleanup(w riov1.Workload) error {
+	for shouldDelete := range w.GetStatus().ShouldClean {
+		// todo: add ssw
+		if err := h.dw.Delete(w.GetMeta().Namespace, shouldDelete, &metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -157,33 +169,33 @@ func (h *handler) scaleDownRevisions(namespace, name, excludedService string, rc
 	return nil
 }
 
-func (h *handler) skip(service *riov1.Service) (bool, error) {
-	if service.Status.ShouldGenerate == "" {
+func (h *handler) skip(w riov1.Workload) (bool, error) {
+	if w.GetStatus().ShouldGenerate == "" {
 		return true, nil
 	}
-	fromPR, err := h.generatedFromPR(service)
+	fromPR, err := h.generatedFromPR(w)
 	if err != nil {
 		return false, err
 	}
 	if fromPR {
 		return false, nil
 	}
-	if !service.Spec.Template || len(service.Status.ContainerRevision) == 0 {
+	if !w.GetSpec().Template || len(w.GetStatus().ContainerRevision) == 0 {
 		return true, nil
 	}
 	needed := 0
 	has := 0
 	// Revision empty is a template
-	if service.Spec.ImageBuild != nil && service.Spec.ImageBuild.Revision == "" {
+	if w.GetSpec().ImageBuild != nil && w.GetSpec().ImageBuild.Revision == "" {
 		needed++
 	}
-	for _, c := range service.Spec.Sidecars {
+	for _, c := range w.GetSpec().Containers {
 		if c.ImageBuild != nil && c.ImageBuild.Revision == "" {
 			needed++
 		}
 	}
 
-	for _, c := range service.Status.ContainerRevision {
+	for _, c := range w.GetStatus().ContainerRevision {
 		if len(c.Commits) > 0 {
 			has++
 		}
@@ -191,30 +203,30 @@ func (h *handler) skip(service *riov1.Service) (bool, error) {
 	return needed != has, nil
 }
 
-func setPullSecrets(spec *riov1.ServiceSpec) {
+func setPullSecrets(ws *riov1.WorkloadSpec) {
 	var imagePullSecrets []string
 
-	if spec.ImageBuild != nil && spec.ImageBuild.PushRegistrySecretName != "" {
-		imagePullSecrets = append(imagePullSecrets, spec.ImageBuild.PushRegistrySecretName)
-	}
+	//if ws.ImageBuild != nil && ws.ImageBuild.PushRegistrySecretName != "" {
+	//	imagePullSecrets = append(imagePullSecrets, spec.ImageBuild.PushRegistrySecretName)
+	//}
 
-	for _, con := range spec.Sidecars {
+	for _, con := range ws.Containers {
 		if con.ImageBuild != nil && con.ImageBuild.PushRegistrySecretName != "" {
 			imagePullSecrets = append(imagePullSecrets, con.ImageBuild.PushRegistrySecretName)
 		}
 	}
 }
 
-func setImageBuild(service *riov1.Service, status riov1.ServiceStatus, spec *riov1.ServiceSpec) {
-	if service.Spec.ImageBuild != nil {
-		spec.ImageBuild = service.Spec.ImageBuild
-		spec.ImageBuild.Revision = last(status.ContainerRevision[services.RootContainerName(service)].Commits)
-	}
+func setImageBuild(w riov1.Workload, status riov1.WorkloadStatus, spec *riov1.WorkloadSpec) {
+	//if w.GetSpec().ImageBuild != nil {
+	//	spec.ImageBuild = w.GetSpec().ImageBuild
+	//	spec.ImageBuild.Revision = last(status.ContainerRevision[services.RootContainerName(w)].Commits)
+	//}
 
-	for i := range spec.Sidecars {
-		if service.Spec.Sidecars[i].ImageBuild != nil {
-			spec.Sidecars[i].ImageBuild = service.Spec.Sidecars[i].ImageBuild
-			spec.Sidecars[i].ImageBuild.Revision = last(status.ContainerRevision[spec.Sidecars[i].Name].Commits)
+	for i := range spec.Containers {
+		if w.GetSpec().Containers[i].ImageBuild != nil {
+			spec.Containers[i].ImageBuild = w.GetSpec().Containers[i].ImageBuild
+			spec.Containers[i].ImageBuild.Revision = last(status.ContainerRevision[spec.Containers[i].Name].Commits)
 		}
 	}
 }

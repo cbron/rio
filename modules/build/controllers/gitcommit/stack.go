@@ -1,7 +1,7 @@
 package gitcommit
 
 //
-//func (h Handler) onChangeStack(key string, obj *webhookv1.GitCommit, gitWatcher *webhookv1.GitWatcher) (*webhookv1.GitCommit, error) {
+//func (h Handler) onGitcommitUpdateStack(key string, obj *webhookv1.GitCommit, gitWatcher *webhookv1.GitWatcher) (*webhookv1.GitCommit, error) {
 //	stack, err := h.stacks.Cache().Get(obj.Namespace, gitWatcher.Annotations[constants.StackLabel])
 //	if err != nil {
 //		if errors.IsNotFound(err) {

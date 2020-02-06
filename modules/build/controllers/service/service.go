@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -37,8 +36,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		deploymentWranglerCache: rContext.Rio.Rio().V1().DeploymentWrangler().Cache(),
 	}
 
-	riov1controller.RegisterDeploymentWranglerGeneratingHandler(
-		ctx,
+	riov1controller.RegisterDeploymentWranglerGeneratingHandler(ctx,
 		rContext.Rio.Rio().V1().DeploymentWrangler(),
 		rContext.Apply.WithCacheTypes(
 			rContext.Build.Tekton().V1alpha1().TaskRun(),
@@ -51,8 +49,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 		p.dwPopulate,
 		nil)
 
-	riov1controller.RegisterStatefulSetWranglerGeneratingHandler(
-		ctx,
+	riov1controller.RegisterStatefulSetWranglerGeneratingHandler(ctx,
 		rContext.Rio.Rio().V1().StatefulSetWrangler(),
 		rContext.Apply.WithCacheTypes(
 			rContext.Build.Tekton().V1alpha1().TaskRun(),
@@ -61,7 +58,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 			rContext.Core.Core().V1().Secret(),
 		),
 		"BuildDeployed",
-		"deploymentwrangler-build",
+		"statefulsetwrangler-build",
 		p.sswPopulate,
 		nil)
 
@@ -125,6 +122,7 @@ func (p *populator) sswPopulate(dw *riov1.StatefulSetWrangler, status riov1.Stat
 	return obj, status, err
 }
 
+// populate takes workload change and creates gitWatchers and taskRuns
 func (p *populator) populate(w riov1.Workload, status riov1.WorkloadStatus) ([]runtime.Object, riov1.WorkloadStatus, error) {
 	imageBuilds := map[string]*riov1.ImageBuildSpec{}
 	for _, con := range w.GetSpec().Containers {
@@ -155,7 +153,7 @@ func (p *populator) populate(w riov1.Workload, status riov1.WorkloadStatus) ([]r
 			return nil, status, err
 		}
 
-		if err := p.populateWebhookAndSecrets(build, status, conName, w.GetMeta().Name, w.GetMeta().Namespace, w.GetSpec().Template, os); err != nil {
+		if err := p.populateWebhookAndSecrets(build, w, status, conName, os); err != nil {
 			return nil, status, err
 		}
 	}
@@ -163,6 +161,7 @@ func (p *populator) populate(w riov1.Workload, status riov1.WorkloadStatus) ([]r
 	return os.All(), status, nil
 }
 
+// create ServiceAccount and TaskRun
 func (p populator) populateBuild(buildKey, namespace string, build *riov1.ImageBuildSpec, w riov1.Workload, status riov1.WorkloadStatus, systemNamespace string, os *objectset.ObjectSet) error {
 	if w.GetSpec().Template {
 		return nil
@@ -200,7 +199,7 @@ func (p populator) populateBuild(buildKey, namespace string, build *riov1.ImageB
 			Labels: map[string]string{
 				constants.ContainerLabel: buildKey,
 				constants.WorkloadName:   w.GetMeta().Name,
-				constants.WorkloadType:   reflect.TypeOf(w).String(),
+				constants.WorkloadType:   w.GetType(),
 				constants.GitCommitLabel: w.GetMeta().Annotations[constants.GitCommitLabel],
 				constants.LogTokenLabel:  status.BuildLogToken,
 			},
@@ -312,7 +311,7 @@ func (p populator) populateBuild(buildKey, namespace string, build *riov1.ImageB
 	return nil
 }
 
-func (p populator) populateWebhookAndSecrets(build *riov1.ImageBuildSpec, status riov1.WorkloadStatus, containerName, workloadName, namespace string, template bool, os *objectset.ObjectSet) error {
+func (p populator) populateWebhookAndSecrets(build *riov1.ImageBuildSpec, w riov1.Workload, status riov1.WorkloadStatus, containerName string, os *objectset.ObjectSet) error {
 	if !status.Watch {
 		return nil
 	}
@@ -325,7 +324,7 @@ func (p populator) populateWebhookAndSecrets(build *riov1.ImageBuildSpec, status
 		return err
 	}
 
-	webhookReceiver := webhookv1.NewGitWatcher(namespace, fmt.Sprintf("%s-%s", workloadName, containerName), webhookv1.GitWatcher{
+	webhookReceiver := webhookv1.NewGitWatcher(w.GetMeta().Namespace, fmt.Sprintf("%s-%s", w.GetMeta().Name, containerName), webhookv1.GitWatcher{
 		Spec: webhookv1.GitWatcherSpec{
 			RepositoryURL:                  build.Repo,
 			Enabled:                        true,
@@ -342,7 +341,8 @@ func (p populator) populateWebhookAndSecrets(build *riov1.ImageBuildSpec, status
 	})
 
 	webhookReceiver.Annotations = map[string]string{
-		constants.WorkloadName:   workloadName,
+		constants.WorkloadName:   w.GetMeta().Name,
+		constants.WorkloadType:   w.GetType(),
 		constants.ContainerLabel: containerName,
 	}
 

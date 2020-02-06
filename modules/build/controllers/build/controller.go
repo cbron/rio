@@ -41,6 +41,7 @@ func Register(ctx context.Context, rContext *types.Context) error {
 	return nil
 }
 
+// On Taskrun change, update the calling workload and parent. Sets new workload image.
 func (h handler) updateWorkload(key string, build *tektonv1alpha1.TaskRun) (*tektonv1alpha1.TaskRun, error) {
 	if build == nil {
 		return build, nil

@@ -41,7 +41,7 @@ func containerIsValid(container riov1.Container) bool {
 	return container.ImageBuild != nil
 }
 
-// todo: cleanup
+// todo: cleanup below and above
 // Convert primary container to named container and return all of them
 func ToNamedContainers(w riov1.Workload) (result []riov1.NamedContainer) {
 	//if containerIsValid(w.GetSpec().Container) {

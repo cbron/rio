@@ -18,12 +18,13 @@ import (
 	k8yaml "sigs.k8s.io/yaml"
 )
 
+// todo: add SSW's
 type Riofile struct {
-	//Services         map[string]riov1.Service
-	Configs          map[string]v1.ConfigMap
-	Routers          map[string]riov1.Router
-	ExternalServices map[string]riov1.ExternalService
-	Kubernetes       []runtime.Object
+	DeploymentWranglers map[string]riov1.DeploymentWrangler
+	Configs             map[string]v1.ConfigMap
+	Routers             map[string]riov1.Router
+	ExternalServices    map[string]riov1.ExternalService
+	Kubernetes          []runtime.Object
 }
 
 func (r *Riofile) Objects() (result []runtime.Object) {
@@ -34,10 +35,10 @@ func (r *Riofile) Objects() (result []runtime.Object) {
 		copy := s
 		result = append(result, &copy)
 	}
-	//for _, s := range r.Services {
-	//	copy := s
-	//	result = append(result, &copy)
-	//}
+	for _, s := range r.DeploymentWranglers {
+		copy := s
+		result = append(result, &copy)
+	}
 	for _, s := range r.ExternalServices {
 		copy := s
 		result = append(result, &copy)
@@ -67,19 +68,19 @@ func RenderObject(object runtime.Object) ([]byte, error) {
 
 func Render(objects []runtime.Object) ([]byte, error) {
 	rf := schema.ExternalRiofile{
-		//Services:         map[string]riov1.Service{},
-		Configs:          map[string]v1.ConfigMap{},
-		Routers:          map[string]riov1.Router{},
-		ExternalServices: map[string]riov1.ExternalService{},
+		DeploymentWranglers: map[string]riov1.DeploymentWrangler{},
+		Configs:             map[string]v1.ConfigMap{},
+		Routers:             map[string]riov1.Router{},
+		ExternalServices:    map[string]riov1.ExternalService{},
 	}
 
 	var other []runtime.Object
 
 	for _, obj := range objects {
 		switch obj.(type) {
-		//case *riov1.Service:
-		//	svc := obj.(*riov1.Service)
-		//	rf.Services[svc.Name] = *svc
+		case *riov1.DeploymentWrangler:
+			dw := obj.(*riov1.DeploymentWrangler)
+			rf.DeploymentWranglers[dw.Name] = *dw
 		case *v1.ConfigMap:
 			cm := obj.(*v1.ConfigMap)
 			rf.Configs[cm.Name] = *cm
@@ -246,16 +247,16 @@ func merge(labels1, labels2 map[string]interface{}) map[string]interface{} {
 
 func toRiofile(rf *schema.ExternalRiofile) (*Riofile, error) {
 	riofile := &Riofile{
-		//Services:         map[string]riov1.Service{},
-		Configs:          map[string]v1.ConfigMap{},
-		Routers:          map[string]riov1.Router{},
-		ExternalServices: map[string]riov1.ExternalService{},
+		DeploymentWranglers: map[string]riov1.DeploymentWrangler{},
+		Configs:             map[string]v1.ConfigMap{},
+		Routers:             map[string]riov1.Router{},
+		ExternalServices:    map[string]riov1.ExternalService{},
 	}
 
-	//for k, v := range rf.Services {
-	//	v.Name = k
-	//	riofile.Services[k] = v
-	//}
+	for k, v := range rf.DeploymentWranglers {
+		v.Name = k
+		riofile.DeploymentWranglers[k] = v
+	}
 
 	for k, v := range rf.Configs {
 		v.Name = k

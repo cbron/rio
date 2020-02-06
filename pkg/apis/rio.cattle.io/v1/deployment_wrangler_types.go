@@ -35,6 +35,10 @@ func (dw DeploymentWrangler) GetStatus() WorkloadStatus {
 	return dw.Status.WorkloadStatus
 }
 
+func (dw DeploymentWrangler) GetType() string {
+	return "DeploymentWrangler"
+}
+
 func DeploymentWranglerWorkloadSlice(items []*DeploymentWrangler) []Workload {
 	wItems := make([]Workload, len(items))
 	for i, v := range items {

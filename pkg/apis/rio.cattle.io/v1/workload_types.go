@@ -14,9 +14,10 @@ type Workload interface {
 	GetMeta() metav1.ObjectMeta
 	GetSpec() WorkloadSpec
 	GetStatus() WorkloadStatus
+	GetType() string
 }
 
-// ServiceSpec represents spec for Service
+// WorkloadSpec represents spec for Workload interface, implemented by DeploymentWrangler and StatefulSetWrangler
 type WorkloadSpec struct {
 	PodConfig // todo: can we get rid of podConfig and just do containers ?
 

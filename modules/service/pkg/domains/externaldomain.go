@@ -6,8 +6,8 @@ import (
 	riov1 "github.com/rancher/rio/pkg/apis/rio.cattle.io/v1"
 )
 
-func IsPublic(svc *riov1.Service) bool {
-	for _, container := range services.ToNamedContainers(svc) {
+func IsPublic(w riov1.Workload) bool {
+	for _, container := range services.ToNamedContainers(w) {
 		for _, port := range container.Ports {
 			if port.IsExposed() {
 				return true

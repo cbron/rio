@@ -39,6 +39,11 @@ func (ssw StatefulSetWrangler) GetStatus() WorkloadStatus {
 	return ssw.Status.WorkloadStatus
 }
 
+func (ssw StatefulSetWrangler) GetType() string {
+	return "StatefulSetWrangler"
+	//return reflect.TypeOf(ssw).String()
+}
+
 type VolumeTemplate struct {
 	// Labels to be applied to the created PVC
 	Labels map[string]string `json:"labels,omitempty"`

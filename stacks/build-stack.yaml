@@ -13,25 +13,61 @@ configs:
         # debugAddress is address for attaching go profiles and debuggers.
         debugAddress = "0.0.0.0:6060"
 
-services:
-  buildkitd:
-    version: v0
-    serviceMesh: false
-    image: "moby/buildkit:v0.6.1"
-    ports:
-    - 8080/http,buildkit,expose=false
-    privileged: true
-    configs:
-    - buildkitd-config:/etc/buildkit
-    containers:
-    - name: registry
-      image: "registry:2"
-      env:
-      - REGISTRY_HTTP_ADDR=0.0.0.0:80
-      ports:
-      - 80:80/tcp,registry,expose=false
-      volume:
-      - rio-registry:/var/lib/registry,persistent=${PERSISTENT}
+kubernetes:
+  manifest: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: webhook
+      namespace: ${NAMESPACE}
+      labels:
+        app: webhook
+        version: v0
+    spec:
+      selector:
+        matchLabels:
+          app: webhook
+          version: v0
+      template:
+        metadata:
+          labels:
+            app: webhook
+            version: v0
+        spec:
+          containers:
+            - args:
+                - gitwatcher
+                - --listen-address
+                - :8090
+              image: rancher/gitwatcher:v0.4.5
+              imagePullPolicy: Always
+              name: webhook
+              ports:
+                - containerPort: 8090
+                  name: http-webhook
+                  protocol: TCP
+
+# TODO: add below back in, buildkitd needs rewritten and gitwatcher needs its permissions back
+#
+#deploymentwranglers:
+#  buildkitd:
+#    version: v0
+#    serviceMesh: false
+#    image: "moby/buildkit:v0.6.1"
+#    ports:
+#    - 8080/http,buildkit,expose=false
+#    privileged: true
+#    configs:
+#    - buildkitd-config:/etc/buildkit
+#    containers:
+#    - name: registry
+#      image: "registry:2"
+#      env:
+#      - REGISTRY_HTTP_ADDR=0.0.0.0:80
+#      ports:
+#      - 80:80/tcp,registry,expose=false
+#      volume:
+#      - rio-registry:/var/lib/registry,persistent=${PERSISTENT}
   webhook:
     version: v0
     global_permissions:
@@ -42,14 +78,6 @@ services:
     - get,list pods
     - create,get,list /pods/log
     - secrets
-    image: rancher/gitwatcher:v0.4.5
-    args:
-    - gitwatcher
-    - --listen-address
-    - :8090
-    imagePullPolicy: always
-    ports:
-    - 8090/http,http-webhook
 
 template:
   envSubst: true
