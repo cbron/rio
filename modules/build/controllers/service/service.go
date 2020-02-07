@@ -29,10 +29,9 @@ import (
 
 func Register(ctx context.Context, rContext *types.Context) error {
 	p := populator{
-		systemNamespace:    rContext.Namespace,
-		secretsCache:       rContext.Core.Core().V1().Secret().Cache(),
-		clusterDomainCache: rContext.Admin.Admin().V1().ClusterDomain().Cache(),
-		//statefulSetWranglerCache: rContext.Rio.Rio().V1().StatefulSetWrangler().Cache(),
+		systemNamespace:         rContext.Namespace,
+		secretsCache:            rContext.Core.Core().V1().Secret().Cache(),
+		clusterDomainCache:      rContext.Admin.Admin().V1().ClusterDomain().Cache(),
 		deploymentWranglerCache: rContext.Rio.Rio().V1().DeploymentWrangler().Cache(),
 	}
 
@@ -73,8 +72,7 @@ type populator struct {
 	customRegistry          string
 	secretsCache            corev1controller.SecretCache
 	deploymentWranglerCache riov1controller.DeploymentWranglerCache
-	//statefulSetWranglerCache riov1controller.StatefulSetWranglerCache // appears not needed because DW cache is only used for webhook
-	clusterDomainCache projectv1controller.ClusterDomainCache
+	clusterDomainCache      projectv1controller.ClusterDomainCache
 }
 
 func (p *populator) resolve(namespace, name string, obj runtime.Object) (result []relatedresource.Key, err error) {

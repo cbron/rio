@@ -40,13 +40,13 @@ func Register(ctx context.Context, rContext *types.Context) error {
 
 	rContext.Webhook.Gitwatcher().V1().GitCommit().OnChange(ctx, "webhook-execution", h.onChange)
 
-	rContext.Rio.Rio().V1().DeploymentWrangler().OnChange(ctx, "service-update-gitcommit", h.dwUpdateGitCommit)
-	rContext.Rio.Rio().V1().StatefulSetWrangler().OnChange(ctx, "service-update-gitcommit", h.sswUpdateGitCommit)
+	rContext.Rio.Rio().V1().DeploymentWrangler().OnChange(ctx, "dw-update-gitcommit", h.dwUpdateGitCommit)
+	rContext.Rio.Rio().V1().StatefulSetWrangler().OnChange(ctx, "ssw-update-gitcommit", h.sswUpdateGitCommit)
 
 	return nil
 }
 
-// onChange gets fired when a new gitcommit comes in
+// onChange gets fired when a new gitcommit comes in, updates wrangler workload as necessary
 func (h Handler) onChange(key string, gc *webhookv1.GitCommit) (*webhookv1.GitCommit, error) {
 	if gc == nil {
 		return gc, nil
@@ -94,13 +94,15 @@ func (h Handler) sswUpdateGitCommit(key string, ssw *riov1.StatefulSetWrangler) 
 	return ssw, err
 }
 
+// todo: add back in
+// when a wrangler is updated, add info to gitcommit
 func (h Handler) updateGitCommit(key string, w riov1.Workload) (riov1.Workload, error) {
 
 	if w.GetMeta().Annotations[constants.GitCommitLabel] == "" {
 		return w, nil
 	}
-	//
-	//rev := w.GetSpec().ImageBuild.Revisionw
+
+	//rev := w.GetSpec().ImageBuild.Revision
 	//if rev == "" {
 	//	return w, nil
 	//}
